@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "65063242216",
+    "project_id": "wear2wear-fd5eb",
+    "storage_bucket": "wear2wear-fd5eb.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:65063242216:android:51b8dc173bcd7021277c5d",
+        "android_client_info": {
+          "package_name": "com.example.dwqdqw"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyB9YKLyNCy3Ok5YdAlsUlZZa8OsbwKOoyw"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
