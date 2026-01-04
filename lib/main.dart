@@ -1,8 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:firebase_core/firebase_core.dart';
 import 'package:firebase_auth/firebase_auth.dart';
-import 'package:cloud_firestore/cloud_firestore.dart'; // 🔥 추가됨
-import 'package:flutter/foundation.dart'; // 🔥 kIsWeb 사용을 위해 추가됨
+import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:flutter/foundation.dart';
+import 'package:curved_navigation_bar/curved_navigation_bar.dart'; // 🔥 패키지 임포트
 import 'firebase_options.dart';
 
 import 'screens/home_screen.dart';
@@ -64,7 +65,6 @@ class MyApp extends StatelessWidget {
 class MainNavigationScreen extends StatefulWidget {
   const MainNavigationScreen({super.key});
 
-  // GlobalKey를 통해 다른 화면(UploadScreen 등)에서 이 상태에 접근할 수 있게 합니다.
   static final GlobalKey<_MainNavigationScreenState> navKey = GlobalKey<_MainNavigationScreenState>();
 
   @override
@@ -93,22 +93,29 @@ class _MainNavigationScreenState extends State<MainNavigationScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      key: MainNavigationScreen.navKey, // 🔥 navKey 연결
+      key: MainNavigationScreen.navKey,
+      // 🔥 extendBody를 true로 설정해야 네비게이션 바의 잘린 곡선 부분이 배경색과 자연스럽게 연결됩니다.
+      extendBody: true,
       body: _getSelectedScreen(currentTabIndex),
-      bottomNavigationBar: BottomNavigationBar(
-        type: BottomNavigationBarType.fixed,
-        backgroundColor: Colors.black,
-        selectedItemColor: const Color(0xFFFF4D4D),
-        unselectedItemColor: Colors.white54,
-        currentIndex: currentTabIndex,
-        onTap: changeTab,
-        items: const [
-          BottomNavigationBarItem(icon: Icon(Icons.home), label: '홈'),
-          BottomNavigationBarItem(icon: Icon(Icons.favorite), label: '매치'),
-          BottomNavigationBarItem(icon: Icon(Icons.swap_horiz), label: '스왑'),
-          BottomNavigationBarItem(icon: Icon(Icons.add_box), label: '업로드'),
-          BottomNavigationBarItem(icon: Icon(Icons.person), label: '프로필'),
+      bottomNavigationBar: CurvedNavigationBar(
+        index: currentTabIndex,
+        height: 60.0,
+        items: const <Widget>[
+          Icon(Icons.home, size: 30, color: Colors.black),
+          Icon(Icons.favorite, size: 30, color: Colors.black),
+          Icon(Icons.swap_horiz, size: 30, color: Colors.black),
+          Icon(Icons.add_box, size: 30, color: Colors.black),
+          Icon(Icons.person, size: 30, color: Colors.black),
         ],
+        color: Colors.white, // 바의 배경색
+        buttonBackgroundColor: const Color(0xFFE2FF00), // 🔥 선택된 아이콘이 올라갔을 때의 배경 원 색상 (테마색 적용)
+        backgroundColor: Colors.transparent, // 🔥 네비게이션 바 뒤로 보이는 배경을 투명하게 설정
+        animationCurve: Curves.easeInOut,
+        animationDuration: const Duration(milliseconds: 400),
+        onTap: (index) {
+          changeTab(index);
+        },
+        letIndexChange: (index) => true,
       ),
     );
   }
