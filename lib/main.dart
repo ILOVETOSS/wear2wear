@@ -1,11 +1,8 @@
 import 'package:flutter/material.dart';
-import 'package:firebase_core/firebase_core.dart';
-import 'package:firebase_auth/firebase_auth.dart';
-import 'package:cloud_firestore/cloud_firestore.dart';
-import 'package:flutter/foundation.dart';
-import 'package:curved_navigation_bar/curved_navigation_bar.dart'; // 🔥 패키지 임포트
-import 'firebase_options.dart';
+import 'package:supabase_flutter/supabase_flutter.dart';
+import 'package:curved_navigation_bar/curved_navigation_bar.dart';
 
+// 화면 파일들 import (경로가 다르면 수정하세요)
 import 'screens/home_screen.dart';
 import 'screens/match_screen.dart';
 import 'screens/swap_screen.dart';
@@ -13,27 +10,20 @@ import 'screens/upload_screen.dart';
 import 'screens/profile_screen.dart';
 import 'screens/login_screen.dart';
 
-int currentTabIndex = 0;
-
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
 
-  // 1. Firebase 초기화
-  await Firebase.initializeApp(
-    options: DefaultFirebaseOptions.currentPlatform,
+  // 🔥 Supabase 설정
+  await Supabase.initialize(
+    url: 'https://lfwotjcrjqoexkhuuspl.supabase.co',
+    anonKey: 'sb_publishable_UYYDiJTfiHCBvBAzkgnnig_gq2y7lU0',
   );
-
-  // 2. 🔥 Firestore 무한 로딩 방지 설정 (특히 nam5 리전/웹 환경 필수)
-  if (kIsWeb) {
-    FirebaseFirestore.instance.settings = const Settings(
-      persistenceEnabled: false, // 웹 브라우저 캐시 비활성화
-      sslEnabled: true,          // 보안 연결 강제
-    );
-    print("🚀 Firestore 웹 최적화 설정 완료 (캐시 꺼짐)");
-  }
 
   runApp(const MyApp());
 }
+
+// 전역 supabase 클라이언트
+final supabase = Supabase.instance.client;
 
 class MyApp extends StatelessWidget {
   const MyApp({super.key});
@@ -42,22 +32,21 @@ class MyApp extends StatelessWidget {
   Widget build(BuildContext context) {
     return MaterialApp(
       debugShowCheckedModeBanner: false,
+      title: 'Clothes Swap',
       theme: ThemeData.dark().copyWith(
         scaffoldBackgroundColor: Colors.black,
         primaryColor: const Color(0xFFE2FF00),
       ),
-      home: StreamBuilder<User?>(
-        stream: FirebaseAuth.instance.authStateChanges(),
-        builder: (context, snapshot) {
-          if (snapshot.connectionState == ConnectionState.waiting) {
-            return const Scaffold(body: Center(child: CircularProgressIndicator()));
-          }
-          if (snapshot.hasData) {
-            return const MainNavigationScreen();
-          }
-          return const LoginScreen();
-        },
-      ),
+      // 현재 세션 여부에 따라 첫 화면 결정
+      home: supabase.auth.currentSession == null
+          ? const LoginScreen()
+          : const MainNavigationScreen(),
+
+      // ✅ 로그인 화면에서 Navigator.pushReplacementNamed(context, '/home')를 쓸 수 있게 경로 등록
+      routes: {
+        '/login': (context) => const LoginScreen(),
+        '/home': (context) => const MainNavigationScreen(),
+      },
     );
   }
 }
@@ -65,13 +54,16 @@ class MyApp extends StatelessWidget {
 class MainNavigationScreen extends StatefulWidget {
   const MainNavigationScreen({super.key});
 
-  static final GlobalKey<_MainNavigationScreenState> navKey = GlobalKey<_MainNavigationScreenState>();
+  // ✅ UploadScreen 등에서 탭을 이동시킬 때 사용할 키
+  static final GlobalKey<MainNavigationScreenState> navKey = GlobalKey<MainNavigationScreenState>();
 
   @override
-  _MainNavigationScreenState createState() => _MainNavigationScreenState();
+  MainNavigationScreenState createState() => MainNavigationScreenState();
 }
 
-class _MainNavigationScreenState extends State<MainNavigationScreen> {
+class MainNavigationScreenState extends State<MainNavigationScreen> {
+  int currentTabIndex = 0;
+
   // 탭 변경 함수
   void changeTab(int index) {
     setState(() {
@@ -79,24 +71,21 @@ class _MainNavigationScreenState extends State<MainNavigationScreen> {
     });
   }
 
-  Widget _getSelectedScreen(int index) {
-    switch (index) {
-      case 0: return const HomeScreen();
-      case 1: return const MatchScreen();
-      case 2: return const SwapScreen();
-      case 3: return const UploadScreen();
-      case 4: return const ProfileScreen();
-      default: return const HomeScreen();
-    }
-  }
+  // 하단 탭에 연결될 화면들
+  final List<Widget> _screens = [
+    const HomeScreen(),
+    const MatchScreen(),
+    const SwapScreen(),
+    const UploadScreen(),
+    const ProfileScreen(), // 여기에 내 옷 목록이 뜨도록 설계됨
+  ];
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       key: MainNavigationScreen.navKey,
-      // 🔥 extendBody를 true로 설정해야 네비게이션 바의 잘린 곡선 부분이 배경색과 자연스럽게 연결됩니다.
-      extendBody: true,
-      body: _getSelectedScreen(currentTabIndex),
+      extendBody: true, // 내비게이션 바 뒤로 배경이 보이게 함
+      body: _screens[currentTabIndex],
       bottomNavigationBar: CurvedNavigationBar(
         index: currentTabIndex,
         height: 60.0,
@@ -107,15 +96,14 @@ class _MainNavigationScreenState extends State<MainNavigationScreen> {
           Icon(Icons.add_box, size: 30, color: Colors.black),
           Icon(Icons.person, size: 30, color: Colors.black),
         ],
-        color: Colors.white, // 바의 배경색
-        buttonBackgroundColor: const Color(0xFFE2FF00), // 🔥 선택된 아이콘이 올라갔을 때의 배경 원 색상 (테마색 적용)
-        backgroundColor: Colors.transparent, // 🔥 네비게이션 바 뒤로 보이는 배경을 투명하게 설정
+        color: Colors.white,
+        buttonBackgroundColor: const Color(0xFFE2FF00),
+        backgroundColor: Colors.transparent,
         animationCurve: Curves.easeInOut,
-        animationDuration: const Duration(milliseconds: 400),
+        animationDuration: const Duration(milliseconds: 300),
         onTap: (index) {
           changeTab(index);
         },
-        letIndexChange: (index) => true,
       ),
     );
   }

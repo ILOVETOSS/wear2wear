@@ -1,68 +1,70 @@
-// 1. 만약 아래 코드에서 'File'을 직접 사용하지 않는다면 이 줄을 지우세요.
-// import 'dart:io';
+import '../main.dart'; // supabase 사용을 위해 추가
 
 class ClothingItem {
   final String id;
+  final String userId;
   final String ownerName;
   final String brand;
   final String title;
+  final String imageUrl;
+  final bool isLocal;
   final String size;
   final String category;
   final String condition;
   final String description;
-  final String imageUrl;
-  final bool isLocal;
   final int likes;
   final DateTime createdAt;
 
   ClothingItem({
     required this.id,
+    required this.userId,
     required this.ownerName,
     required this.brand,
     required this.title,
+    required this.imageUrl,
+    this.isLocal = false,
     required this.size,
     required this.category,
     required this.condition,
     required this.description,
-    required this.imageUrl,
-    this.isLocal = false,
-    this.likes = 0,
-    DateTime? createdAt,
-  }) : this.createdAt = createdAt ?? DateTime.now();
+    required this.likes,
+    required this.createdAt,
+  });
 
-  // storage_service.dart 에러 해결을 위한 toJson
+  // 🔥 Supabase(Map)에서 데이터를 가져오는 팩토리 생성자
+  factory ClothingItem.fromJson(Map<String, dynamic> json) {
+    return ClothingItem(
+      id: json['id'].toString(),
+      userId: json['user_id'],
+      ownerName: json['owner_name'] ?? '',
+      brand: json['brand'] ?? '',
+      title: json['title'] ?? '',
+      imageUrl: json['image_url'] ?? '',
+      size: json['size'] ?? 'M',
+      category: json['category'] ?? '',
+      condition: json['condition'] ?? '',
+      description: json['description'] ?? '',
+      likes: json['likes'] ?? 0,
+      createdAt: json['created_at'] != null
+          ? DateTime.parse(json['created_at'])
+          : DateTime.now(),
+    );
+  }
+
   Map<String, dynamic> toJson() {
     return {
       'id': id,
-      'ownerName': ownerName,
+      'user_id': userId,
+      'owner_name': ownerName,
       'brand': brand,
       'title': title,
+      'image_url': imageUrl,
       'size': size,
       'category': category,
       'condition': condition,
       'description': description,
-      'imageUrl': imageUrl,
-      'isLocal': isLocal,
       'likes': likes,
-      'createdAt': createdAt.toIso8601String(),
+      'created_at': createdAt.toIso8601String(),
     };
-  }
-
-  // 데이터 복구를 위한 fromJson
-  factory ClothingItem.fromJson(Map<String, dynamic> json) {
-    return ClothingItem(
-      id: json['id'],
-      ownerName: json['ownerName'],
-      brand: json['brand'],
-      title: json['title'],
-      size: json['size'],
-      category: json['category'],
-      condition: json['condition'],
-      description: json['description'],
-      imageUrl: json['imageUrl'],
-      isLocal: json['isLocal'] ?? false,
-      likes: json['likes'] ?? 0,
-      createdAt: DateTime.parse(json['createdAt']),
-    );
   }
 }

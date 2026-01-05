@@ -1,20 +1,23 @@
-import 'package:firebase_auth/firebase_auth.dart';
-import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:supabase_flutter/supabase_flutter.dart';
 
 class AuthService {
-  final FirebaseAuth _auth = FirebaseAuth.instance;
-  final FirebaseFirestore _db = FirebaseFirestore.instance;
+  final SupabaseClient _supabase = Supabase.instance.client;
 
-  Future<User?> signInWithEmail(String email, String password) async {
+  // 로그인
+  Future<AuthResponse?> signInWithEmail(String email, String password) async {
     try {
-      UserCredential result = await _auth.signInWithEmailAndPassword(
-          email: email.trim(), password: password.trim());
-      return result.user;
+      final response = await _supabase.auth.signInWithPassword(
+        email: email.trim(),
+        password: password.trim(),
+      );
+      return response;
     } catch (e) {
+      print("❌ 로그인 에러: $e");
       return null;
     }
   }
 
+  // 회원가입
   Future<String> signUpWithEmail({
     required String email,
     required String password,
@@ -23,26 +26,33 @@ class AuthService {
     required String gender,
   }) async {
     try {
-      UserCredential result = await _auth.createUserWithEmailAndPassword(
-          email: email.trim(), password: password.trim());
+      // 1. Supabase Auth 계정 생성
+      final AuthResponse res = await _supabase.auth.signUp(
+        email: email.trim(),
+        password: password.trim(),
+        data: {
+          'nickname': nickname.trim(),
+          'name': name.trim(),
+          'gender': gender,
+        },
+      );
 
-      if (result.user != null) {
-        await _db.collection('users').doc(result.user!.uid).set({
-          'uid': result.user!.uid,
+      if (res.user != null) {
+        // 2. 'users' 테이블에 추가 정보 저장
+        await _supabase.from('users').insert({
+          'id': res.user!.id,
           'email': email.trim(),
           'nickname': nickname.trim(),
           'name': name.trim(),
           'gender': gender,
-          'createdAt': FieldValue.serverTimestamp(),
         });
 
-        await _auth.signOut();
-        await Future.delayed(const Duration(milliseconds: 500));
+        await _supabase.auth.signOut();
         return "success";
       }
       return "error";
-    } on FirebaseAuthException catch (e) {
-      return e.code;
+    } on AuthException catch (e) {
+      return e.message;
     } catch (e) {
       return "error";
     }

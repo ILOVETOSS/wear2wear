@@ -1,8 +1,11 @@
 import 'package:flutter/material.dart';
+import 'package:image_picker/image_picker.dart';
 import 'package:flutter/foundation.dart';
-import 'package:image_picker/image_picker.dart'; // 🔥 XFile 사용
-import '../services/database_service.dart';
+import 'dart:io';
 import '../main.dart';
+import '../services/database_service.dart';
+// 💡 아래 경로를 실제 MainNavigationScreen이 있는 파일 경로로 수정하세요!
+// import 'main_navigation_screen.dart';
 
 class UploadScreen extends StatefulWidget {
   const UploadScreen({super.key});
@@ -11,101 +14,71 @@ class UploadScreen extends StatefulWidget {
 }
 
 class _UploadScreenState extends State<UploadScreen> {
-  final TextEditingController _brandController = TextEditingController();
-  final TextEditingController _titleController = TextEditingController();
   final DatabaseService _dbService = DatabaseService();
-
-  XFile? _pickedFile; // 🔥 File? 대신 XFile? 사용
-  Uint8List? _webImage;
+  final _brandController = TextEditingController();
+  final _titleController = TextEditingController();
+  XFile? _pickedFile;
   bool _isUploading = false;
 
-  Future<void> _pickImage() async {
-    final XFile? image = await ImagePicker().pickImage(source: ImageSource.gallery);
-    if (image != null) {
-      final bytes = await image.readAsBytes();
-      setState(() {
-        _pickedFile = image;
-        _webImage = bytes;
-      });
-    }
-  }
-
   void _handleUpload() async {
-    if (_pickedFile == null || _brandController.text.isEmpty) {
-      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text("사진과 브랜드명을 입력해주세요!")));
-      return;
-    }
+    if (_pickedFile == null || _brandController.text.isEmpty) return;
 
-    if (!mounted) return;
     setState(() => _isUploading = true);
-
-    bool success = await _dbService.uploadClothingItem(
-      imageFile: _pickedFile!, // 🔥 XFile 전달
+    final newItem = await _dbService.uploadClothingItem(
+      imageFile: _pickedFile!,
       brand: _brandController.text,
       title: _titleController.text,
     );
 
-    if (!mounted) return;
-    setState(() => _isUploading = false);
+    if (newItem != null && mounted) {
+      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text("등록 성공!")));
 
-    if (success) {
-      _brandController.clear();
-      _titleController.clear();
-      setState(() {
-        _pickedFile = null;
-        _webImage = null;
-      });
-      MainNavigationScreen.navKey.currentState?.changeTab(4);
+      // ✅ 원래 쓰시던 방식 그대로 유지 (단, MainNavigationScreen 클래스가 정의되어 있어야 함)
+      // 만약 여전히 에러가 난다면 MainNavigationScreen.navKey가 main.dart 등에 선언되어 있는지 확인하세요.
+      try {
+        MainNavigationScreen.navKey.currentState?.changeTab(0);
+      } catch (e) {
+        // navKey 방식이 안될 경우를 대비한 안전장치
+        Navigator.of(context).pushReplacementNamed('/home');
+      }
+    } else {
+      if (mounted) ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text("등록 실패...")));
     }
+    if (mounted) setState(() => _isUploading = false);
   }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(title: const Text("의류 등록"), backgroundColor: Colors.black),
-      body: _isUploading
-          ? const Center(child: CircularProgressIndicator(color: Color(0xFFFF4D4D)))
-          : SingleChildScrollView(
-        padding: const EdgeInsets.all(20.0),
+      appBar: AppBar(title: const Text("Supabase 옷 등록")),
+      body: SingleChildScrollView(
+        padding: const EdgeInsets.all(20),
         child: Column(
           children: [
             GestureDetector(
-              onTap: _pickImage,
+              onTap: () async {
+                final img = await ImagePicker().pickImage(source: ImageSource.gallery);
+                if (img != null) setState(() => _pickedFile = img);
+              },
               child: Container(
-                width: 150, height: 150,
-                decoration: BoxDecoration(
-                  color: Colors.white10,
-                  borderRadius: BorderRadius.circular(15),
-                  border: Border.all(color: _pickedFile != null ? const Color(0xFFFF4D4D) : Colors.white24),
-                ),
-                child: _webImage != null
-                    ? ClipRRect(borderRadius: BorderRadius.circular(15), child: Image.memory(_webImage!, fit: BoxFit.cover))
-                    : const Icon(Icons.add_a_photo, size: 40, color: Colors.white54),
+                height: 250, width: double.infinity, color: Colors.grey[900],
+                child: _pickedFile == null
+                    ? const Icon(Icons.add_a_photo)
+                    : (kIsWeb ? Image.network(_pickedFile!.path) : Image.file(File(_pickedFile!.path))),
               ),
             ),
-            const SizedBox(height: 20),
-            _buildTextField(_brandController, "브랜드"),
-            _buildTextField(_titleController, "상품명"),
+            TextField(controller: _brandController, decoration: const InputDecoration(labelText: "Brand")),
+            TextField(controller: _titleController, decoration: const InputDecoration(labelText: "Item Name")),
             const SizedBox(height: 30),
-            ElevatedButton(
-              onPressed: _handleUpload,
-              style: ElevatedButton.styleFrom(
-                backgroundColor: const Color(0xFFFF4D4D),
-                minimumSize: const Size(double.infinity, 55),
-              ),
-              child: const Text("나의 옷장에 등록하기", style: TextStyle(color: Colors.white)),
-            )
+            _isUploading
+                ? const CircularProgressIndicator()
+                : ElevatedButton(
+                onPressed: _handleUpload,
+                child: const Text("등록하기")
+            ),
           ],
         ),
       ),
-    );
-  }
-
-  Widget _buildTextField(TextEditingController controller, String label) {
-    return TextField(
-      controller: controller,
-      style: const TextStyle(color: Colors.white),
-      decoration: InputDecoration(labelText: label, labelStyle: const TextStyle(color: Colors.white70)),
     );
   }
 }

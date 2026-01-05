@@ -1,63 +1,75 @@
 import 'package:flutter/material.dart';
-import 'dart:io';
-import '../data/mock_data.dart';
+import '../main.dart';
+import '../services/swap_service.dart';
 
-class MatchScreen extends StatefulWidget {
+class MatchScreen extends StatelessWidget {
   const MatchScreen({super.key});
 
   @override
-  State<MatchScreen> createState() => _MatchScreenState();
-}
-
-class _MatchScreenState extends State<MatchScreen> with SingleTickerProviderStateMixin {
-  late TabController _tabController;
-
-  @override
-  void initState() {
-    super.initState();
-    _tabController = TabController(length: 2, vsync: this);
-  }
-
-  @override
   Widget build(BuildContext context) {
+    final SwapService service = SwapService();
+    final String uid = supabase.auth.currentUser!.id;
+
     return Scaffold(
       backgroundColor: Colors.black,
-      appBar: AppBar(
-        title: const Text("MATCHES"),
-        backgroundColor: Colors.black,
-        bottom: TabBar(
-          controller: _tabController,
-          indicatorColor: const Color(0xFFFF4D4D),
-          tabs: const [Tab(text: "보낸 요청"), Tab(text: "받은 요청")],
-        ),
-      ),
-      body: TabBarView(
-        controller: _tabController,
-        children: [
-          _buildList(matchedItems, "보낸 요청이 없습니다."),
-          _buildList([], "받은 요청이 없습니다."),
-        ],
+      appBar: AppBar(title: const Text("REQUESTS", style: TextStyle(color: Color(0xFFE2FF00))), backgroundColor: Colors.black),
+      body: StreamBuilder<List<Map<String, dynamic>>>(
+        stream: service.getReceivedRequests(uid),
+        builder: (context, snapshot) {
+          final requests = snapshot.data ?? [];
+          if (requests.isEmpty) return const Center(child: Text("요청이 없습니다."));
+
+          return ListView.builder(
+            padding: const EdgeInsets.all(16),
+            itemCount: requests.length,
+            itemBuilder: (context, index) {
+              final req = requests[index];
+              return Container(
+                margin: const EdgeInsets.only(bottom: 15),
+                padding: const EdgeInsets.all(16),
+                decoration: BoxDecoration(color: const Color(0xFF1A1A1A), borderRadius: BorderRadius.circular(15)),
+                child: Column(
+                  children: [
+                    Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+                      children: [
+                        _miniImg(req['sender_clothes_id'], "상대의 제안"),
+                        const Icon(Icons.swap_horiz, color: Colors.white),
+                        _miniImg(req['receiver_clothes_id'], "나의 옷"),
+                      ],
+                    ),
+                    const SizedBox(height: 15),
+                    Row(
+                      children: [
+                        Expanded(child: TextButton(onPressed: () => service.rejectRequest(req['id']), child: const Text("거절", style: TextStyle(color: Colors.red)))),
+                        Expanded(child: ElevatedButton(
+                          onPressed: () => service.acceptRequest(req['id']), // 수정됨: 인자 1개
+                          style: ElevatedButton.styleFrom(backgroundColor: const Color(0xFFE2FF00)),
+                          child: const Text("수락", style: TextStyle(color: Colors.black)),
+                        )),
+                      ],
+                    )
+                  ],
+                ),
+              );
+            },
+          );
+        },
       ),
     );
   }
 
-  Widget _buildList(List list, String msg) {
-    return list.isEmpty
-        ? Center(child: Text(msg, style: const TextStyle(color: Colors.white54)))
-        : ListView.builder(
-      itemCount: list.length,
-      itemBuilder: (context, index) {
-        final item = list[index];
-        return ListTile(
-          leading: ClipRRect(
-            borderRadius: BorderRadius.circular(5),
-            child: item.isLocal
-                ? Image.file(File(item.imageUrl), width: 50, height: 50, fit: BoxFit.cover)
-                : Image.network(item.imageUrl, width: 50, height: 50, fit: BoxFit.cover),
-          ),
-          title: Text(item.brand),
-          subtitle: Text(item.title),
-          trailing: const Text("대기중", style: TextStyle(color: Color(0xFFFF4D4D))),
+  Widget _miniImg(String id, String label) {
+    return FutureBuilder<Map<String, dynamic>?>(
+      future: supabase.from('clothes').select().eq('id', id).maybeSingle(),
+      builder: (context, snap) {
+        final url = snap.data?['image_url'];
+        return Column(
+          children: [
+            Container(width: 80, height: 80, decoration: BoxDecoration(borderRadius: BorderRadius.circular(8), color: Colors.white10, image: url != null ? DecorationImage(image: NetworkImage(url), fit: BoxFit.cover) : null)),
+            const SizedBox(height: 4),
+            Text(label, style: const TextStyle(fontSize: 10, color: Colors.white54)),
+          ],
         );
       },
     );
