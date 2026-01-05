@@ -16,7 +16,7 @@ class SwapService {
         .order('created_at');
   }
 
-  // 2. 받은 요청 목록 조회 (수정됨: filter 사용)
+  // 2. 받은 요청 목록 조회 (상대방이 나에게 보낸 것)
   Stream<List<Map<String, dynamic>>> getReceivedRequests(String userId) {
     return _supabase
         .from('swaps')
@@ -25,16 +25,28 @@ class SwapService {
         .map((maps) => maps.where((m) => m['status'] == 'pending').toList());
   }
 
-  // 3. 요청 승인/거절
+  // 3. [추가] 보낸 요청 목록 조회 (내가 상대방에게 보낸 것)
+  Stream<List<Map<String, dynamic>>> getSentRequests() {
+    final myId = _supabase.auth.currentUser?.id;
+    if (myId == null) return Stream.value([]);
+
+    return _supabase
+        .from('swaps')
+        .stream(primaryKey: ['id'])
+        .eq('sender_id', myId);
+  }
+
+  // 4. 요청 승인 (수락)
   Future<void> acceptRequest(String requestId) async {
     await _supabase.from('swaps').update({'status': 'accepted'}).eq('id', requestId);
   }
 
+  // 5. 요청 거절
   Future<void> rejectRequest(String requestId) async {
     await _supabase.from('swaps').update({'status': 'rejected'}).eq('id', requestId);
   }
 
-  // 4. 스왑 요청 보내기 (매개변수 이름 중요!)
+  // 6. 스왑 요청 보내기
   Future<void> sendSwapRequest({
     required String receiverId,
     required String receiverClothesId,
