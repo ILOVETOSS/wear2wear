@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:curved_navigation_bar/curved_navigation_bar.dart';
 
-// 화면 파일들 import (경로가 다르면 수정하세요)
+// 화면 파일들 import
 import 'screens/home_screen.dart';
 import 'screens/match_screen.dart';
 import 'screens/swap_screen.dart';
@@ -36,13 +36,18 @@ class MyApp extends StatelessWidget {
       theme: ThemeData.dark().copyWith(
         scaffoldBackgroundColor: Colors.black,
         primaryColor: const Color(0xFFE2FF00),
+        inputDecorationTheme: InputDecorationTheme(
+          filled: true,
+          fillColor: const Color(0xFF1A1A1A),
+          border: OutlineInputBorder(
+            borderRadius: BorderRadius.circular(15),
+            borderSide: BorderSide.none,
+          ),
+        ),
       ),
-      // 현재 세션 여부에 따라 첫 화면 결정
       home: supabase.auth.currentSession == null
           ? const LoginScreen()
           : const MainNavigationScreen(),
-
-      // ✅ 로그인 화면에서 Navigator.pushReplacementNamed(context, '/home')를 쓸 수 있게 경로 등록
       routes: {
         '/login': (context) => const LoginScreen(),
         '/home': (context) => const MainNavigationScreen(),
@@ -54,7 +59,7 @@ class MyApp extends StatelessWidget {
 class MainNavigationScreen extends StatefulWidget {
   const MainNavigationScreen({super.key});
 
-  // ✅ UploadScreen 등에서 탭을 이동시킬 때 사용할 키
+  // ✅ 외부(UploadScreen 등)에서 접근 가능하도록 GlobalKey 설정
   static final GlobalKey<MainNavigationScreenState> navKey = GlobalKey<MainNavigationScreenState>();
 
   @override
@@ -64,34 +69,34 @@ class MainNavigationScreen extends StatefulWidget {
 class MainNavigationScreenState extends State<MainNavigationScreen> {
   int currentTabIndex = 0;
 
-  // 탭 변경 함수
+  // ✅ 외부에서 탭을 변경할 수 있도록 public 함수로 유지
   void changeTab(int index) {
     setState(() {
       currentTabIndex = index;
     });
   }
 
-  // 하단 탭에 연결될 화면들
+  // 하단 탭에 연결될 화면들 (총 5개)
   final List<Widget> _screens = [
-    const HomeScreen(),
-    const MatchScreen(),
-    const SwapScreen(),
-    const UploadScreen(),
-    const ProfileScreen(), // 여기에 내 옷 목록이 뜨도록 설계됨
+    const HomeScreen(),      // 0. 홈
+    const MatchScreen(),     // 1. 활동 (받은 요청 & 채팅 통합)
+    const SwapScreen(),      // 2. 스와이프 매칭
+    const UploadScreen(),    // 3. 업로드
+    const ProfileScreen(),   // 4. 프로필
   ];
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       key: MainNavigationScreen.navKey,
-      extendBody: true, // 내비게이션 바 뒤로 배경이 보이게 함
+      extendBody: true,
       body: _screens[currentTabIndex],
       bottomNavigationBar: CurvedNavigationBar(
         index: currentTabIndex,
         height: 60.0,
         items: const <Widget>[
           Icon(Icons.home, size: 30, color: Colors.black),
-          Icon(Icons.favorite, size: 30, color: Colors.black),
+          Icon(Icons.favorite, size: 30, color: Colors.black), // 하트 탭: 요청 & 채팅
           Icon(Icons.swap_horiz, size: 30, color: Colors.black),
           Icon(Icons.add_box, size: 30, color: Colors.black),
           Icon(Icons.person, size: 30, color: Colors.black),
