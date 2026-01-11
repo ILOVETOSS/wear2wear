@@ -2,81 +2,65 @@ import 'package:flutter/material.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 
 class HomeBrandSection extends StatelessWidget {
-  const HomeBrandSection({super.key});
+  const HomeBrandSection({Key? key}) : super(key: key);
 
-  // 확장자 .png 반영
-  final List<Map<String, String>> brands = const [
-    {'name': 'Nike', 'image': 'assets/images/nike.png'},
-    {'name': 'Adidas', 'image': 'assets/images/adidas.png'},
-    {'name': 'Gucci', 'image': 'assets/images/gucci.png'},
-    {'name': 'Fila', 'image': 'assets/images/fila.png'},
-    {'name': 'Puma', 'image': 'assets/images/puma.png'},
+  // ✅ 임시 데이터 (파일명과 실제 파일이 일치해야 함)
+  static const List<Map<String, String>> tempBrands = [
+    {"name": "Nike", "image": "assets/images/nike.png"},
+    {"name": "Adidas", "image": "assets/images/adidas.png"},
+    {"name": "Stussy", "image": "assets/images/stussy.png"},
+    {"name": "Zara", "image": "assets/images/zara.png"},
+    {"name": "Chanel", "image": "assets/images/chanel.png"},
   ];
 
   @override
   Widget build(BuildContext context) {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Padding(
-          padding: EdgeInsets.symmetric(horizontal: 20.w, vertical: 15.h),
-          child: Text(
-            "인기 브랜드 스왑",
-            style: TextStyle(
-              color: Colors.white,
-              fontSize: 18.sp,
-              fontWeight: FontWeight.bold,
-            ),
-          ),
-        ),
-        SizedBox(
-          height: 105.h,
-          child: ListView.builder(
-            scrollDirection: Axis.horizontal,
-            padding: EdgeInsets.only(left: 20.w),
-            itemCount: brands.length,
-            itemBuilder: (context, index) {
-              return Padding(
-                padding: EdgeInsets.only(right: 18.w),
-                child: Column(
-                  children: [
-                    Container(
-                      width: 68.w,
-                      height: 68.h,
-                      decoration: BoxDecoration(
-                        shape: BoxShape.circle,
-                        color: const Color(0xFF1A1A1A),
-                        border: Border.all(
-                          color: const Color(0xFFE2FF00).withOpacity(0.4),
-                          width: 1.2,
-                        ),
-                      ),
-                      child: Padding(
-                        padding: EdgeInsets.all(14.w),
-                        child: Image.asset(
-                          brands[index]['image']!,
-                          fit: BoxFit.contain,
-                          errorBuilder: (context, error, stackTrace) =>
-                          const Icon(Icons.error_outline, color: Colors.white24),
-                        ),
-                      ),
+    return SizedBox(
+      height: 95.h, // 크기 조정에 따른 높이 최적화
+      child: ListView.builder(
+        padding: EdgeInsets.symmetric(horizontal: 16.w),
+        scrollDirection: Axis.horizontal,
+        physics: const BouncingScrollPhysics(),
+        itemCount: tempBrands.length,
+        itemBuilder: (context, index) {
+          final brand = tempBrands[index];
+          return Container(
+            width: 65.w,
+            margin: EdgeInsets.only(right: 12.w),
+            child: Column(
+              children: [
+                Container(
+                  width: 52.w, // 로고 크기 축소
+                  height: 52.w,
+                  decoration: BoxDecoration(
+                    shape: BoxShape.circle,
+                    color: Colors.white,
+                    border: Border.all(color: Colors.grey[100]!, width: 1),
+                    boxShadow: [
+                      BoxShadow(color: Colors.black.withOpacity(0.04), blurRadius: 4, offset: const Offset(0, 2)),
+                    ],
+                  ),
+                  child: ClipOval(
+                    child: Image.asset(
+                      brand['image']!,
+                      fit: BoxFit.contain,
+                      errorBuilder: (context, error, stackTrace) => Icon(Icons.style, color: Colors.grey[300], size: 20.sp),
                     ),
-                    SizedBox(height: 8.h),
-                    Text(
-                      brands[index]['name']!,
-                      style: TextStyle(
-                        color: Colors.white70,
-                        fontSize: 11.sp,
-                        fontWeight: FontWeight.w500,
-                      ),
-                    ),
-                  ],
+                  ),
                 ),
-              );
-            },
-          ),
-        ),
-      ],
+                SizedBox(height: 8.h),
+                Text(
+                  brand['name']!,
+                  textAlign: TextAlign.center,
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: TextStyle(color: Colors.black, fontSize: 11.sp, fontWeight: FontWeight.w600),
+                ),
+              ],
+            ),
+          );
+        },
+      ),
     );
   }
 }

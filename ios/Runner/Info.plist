@@ -45,5 +45,9 @@
 	<true/>
 	<key>UIApplicationSupportsIndirectInputEvents</key>
 	<true/>
+	<key>NSLocationWhenInUseUsageDescription</key>
+     <string>근처의 의류 스왑 아이템을 보여주기 위해 위치 정보가 필요합니다.</string>
+     <key>NSLocationAlwaysUsageDescription</key>
+     <string>위치 정보를 통해 최적의 스왑 파트너를 추천합니다.</string>
 </dict>
 </plist>
