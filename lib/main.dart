@@ -3,9 +3,8 @@ import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:curved_navigation_bar/curved_navigation_bar.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'screens/search_screen.dart';
-// 화면 파일들 import
 import 'screens/home_screen.dart';
-import 'screens/match_screen.dart';   // 기존 하트/매치 기능을 채팅 탭에서 사용
+import 'screens/match_screen.dart';
 import 'screens/swap_screen.dart';
 import 'screens/upload_screen.dart';
 import 'screens/profile_screen.dart';
@@ -34,24 +33,29 @@ class MyApp extends StatelessWidget {
       builder: (context, child) {
         return MaterialApp(
           debugShowCheckedModeBanner: false,
-          theme: ThemeData.dark().copyWith(
-            scaffoldBackgroundColor: Colors.black,
-            primaryColor: const Color(0xFFE2FF00),
+          theme: ThemeData.light().copyWith(
+            scaffoldBackgroundColor: Colors.white,
+            primaryColor: Colors.black,
+            appBarTheme: const AppBarTheme(
+              backgroundColor: Colors.white,
+              foregroundColor: Colors.black,
+              elevation: 0,
+            ),
           ),
-          home: child,
+          home: supabase.auth.currentSession == null
+              ? const LoginScreen()
+              : const MainNavigationScreen(),
         );
       },
-      child: supabase.auth.currentSession == null
-          ? const LoginScreen()
-          : const MainNavigationScreen(),
     );
   }
 }
 
 class MainNavigationScreen extends StatefulWidget {
-  const MainNavigationScreen({super.key});
-
+  // ✅ 전역에서 접근 가능하도록 GlobalKey 정의
   static final GlobalKey<MainNavigationScreenState> navKey = GlobalKey<MainNavigationScreenState>();
+
+  const MainNavigationScreen({super.key});
 
   @override
   MainNavigationScreenState createState() => MainNavigationScreenState();
@@ -60,15 +64,15 @@ class MainNavigationScreen extends StatefulWidget {
 class MainNavigationScreenState extends State<MainNavigationScreen> {
   int currentTabIndex = 0;
 
-  // 🔥 요청하신 구성: [홈, 검색, 스왑, 채팅(하트기능), 마이]
   final List<Widget> _screens = [
-    const HomeScreen(),    // 0: 홈
-    const SearchScreen(),  // 🔥 1: 탐색(검색) 자리에 방금 만든 SearchScreen 연결
-    const SwapScreen(),    // 2: 스왑
-    const MatchScreen(),   // 3: 채팅 (하트/매치 기능)
-    const ProfileScreen(), // 4: 마이
+    const HomeScreen(),
+    const SearchScreen(),
+    const SwapScreen(),
+    const MatchScreen(),
+    const ProfileScreen(),
   ];
 
+  // ✅ 외부에서 호출 가능하도록 만든 탭 변경 함수
   void changeTab(int index) {
     setState(() {
       currentTabIndex = index;
@@ -86,45 +90,60 @@ class MainNavigationScreenState extends State<MainNavigationScreen> {
 
   @override
   Widget build(BuildContext context) {
-    // 스왑 화면(index 2)일 때는 업로드 버튼 숨김
     bool showUploadButton = currentTabIndex != 2;
 
     return Scaffold(
+      // ✅ Key 연결
       key: MainNavigationScreen.navKey,
       extendBody: true,
       body: _screens[currentTabIndex],
-
-      // 🔥 '+ 업로드' 버튼 (위치 하향 조정)
-      floatingActionButtonLocation: FloatingActionButtonLocation.endFloat,
       floatingActionButton: showUploadButton
           ? Padding(
-        padding: EdgeInsets.only(bottom: 60.h), // 바텀바에 더 가깝게 내림
+        padding: EdgeInsets.only(bottom: 80.h),
         child: FloatingActionButton.extended(
           onPressed: _openUploadPage,
           backgroundColor: Colors.black,
-          elevation: 12,
+          foregroundColor: const Color(0xFFE2FF00),
+          elevation: 4,
           shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(30.r)),
-          label: Text("업로드", style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 14.sp)),
-          icon: Icon(Icons.add, color: Colors.white, size: 20.sp),
+          label: Text("UPLOAD", style: TextStyle(fontWeight: FontWeight.w900, fontSize: 13.sp)),
+          icon: const Icon(Icons.add_rounded),
         ),
       )
           : null,
-
       bottomNavigationBar: CurvedNavigationBar(
         index: currentTabIndex,
-        height: 65.0,
-        items: const <Widget>[
-          Icon(Icons.home_filled, size: 28, color: Colors.black),          // 0: 홈
-          Icon(Icons.search, size: 28, color: Colors.black),               // 1: 검색
-          Icon(Icons.swap_horiz_rounded, size: 32, color: Colors.black),    // 2: 스왑
-          Icon(Icons.chat_bubble_outline, size: 26, color: Colors.black),    // 3: 채팅 (기존 하트 자리)
-          Icon(Icons.person_outline, size: 28, color: Colors.black),       // 4: 마이
+        height: 60.0,
+        items: [
+          _buildNavItem(Icons.home_filled, "HOME", 0),
+          _buildNavItem(Icons.search, "SEARCH", 1),
+          _buildNavItem(Icons.swap_horiz_rounded, "SWAP", 2),
+          _buildNavItem(Icons.chat_bubble_rounded, "CHAT", 3),
+          _buildNavItem(Icons.person_rounded, "MY", 4),
         ],
-        color: Colors.white,
-        buttonBackgroundColor: const Color(0xFFE2FF00),
+        color: Colors.black,
+        buttonBackgroundColor: Colors.black,
         backgroundColor: Colors.transparent,
         onTap: (index) => changeTab(index),
       ),
+    );
+  }
+
+  Widget _buildNavItem(IconData icon, String label, int index) {
+    bool isSelected = currentTabIndex == index;
+    return Column(
+      mainAxisAlignment: MainAxisAlignment.center,
+      children: [
+        Icon(icon, size: 24, color: isSelected ? const Color(0xFFE2FF00) : Colors.white),
+        if (!isSelected)
+          Padding(
+            padding: const EdgeInsets.only(top: 2),
+            child: Text(
+              label,
+              style: TextStyle(color: Colors.white, fontSize: 8.sp, fontWeight: FontWeight.bold),
+            ),
+          ),
+      ],
     );
   }
 }
