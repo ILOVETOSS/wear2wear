@@ -4,9 +4,17 @@ import '../main.dart';
 import '../services/swap_service.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import 'upload_screen.dart';
+import 'dart:typed_data'; // 웹 이미지 처리를 위해 추가
 
 class ProfileScreen extends StatefulWidget {
-  const ProfileScreen({super.key});
+  final String? targetUid; // 👈 타인 프로필 조회를 위한 ID
+  final Map<String, dynamic>? editItem; // 👈 에러 해결을 위한 파라미터 정의
+
+  const ProfileScreen({
+    super.key,
+    this.targetUid,
+    this.editItem,
+  });
 
   @override
   State<ProfileScreen> createState() => _ProfileScreenState();
@@ -14,21 +22,45 @@ class ProfileScreen extends StatefulWidget {
 
 class _ProfileScreenState extends State<ProfileScreen> {
   bool _isUploading = false;
+  late String _displayUid; // 실제 화면에 보여줄 유저의 ID
+  bool _isMe = false;      // 내 프로필인지 여부
 
-  // 📸 프로필 이미지 업데이트
+  @override
+  void initState() {
+    super.initState();
+    final currentUser = supabase.auth.currentUser;
+    // targetUid가 있으면 타인 프로필, 없으면 내 프로필
+    _displayUid = widget.targetUid ?? currentUser?.id ?? '';
+    _isMe = _displayUid == currentUser?.id;
+  }
+
+  // 📸 프로필 이미지 업데이트 (내 프로필일 때만 작동)
   Future<void> _updateProfileImage() async {
+    if (!_isMe) return;
+
     final picker = ImagePicker();
     final XFile? image = await picker.pickImage(source: ImageSource.gallery, imageQuality: 50);
     if (image == null) return;
+
     if (mounted) setState(() => _isUploading = true);
+
     try {
-      final user = supabase.auth.currentUser;
-      if (user == null) throw '로그인이 필요합니다.';
       final imageBytes = await image.readAsBytes();
-      final fileName = '${user.id}.${image.path.split('.').last}';
-      await supabase.storage.from('avatars').uploadBinary(fileName, imageBytes, fileOptions: const FileOptions(upsert: true));
+      final fileName = '$_displayUid.${image.path.split('.').last}';
+
+      await supabase.storage.from('avatars').uploadBinary(
+          fileName,
+          imageBytes,
+          fileOptions: const FileOptions(upsert: true)
+      );
+
       final String imageUrl = supabase.storage.from('avatars').getPublicUrl(fileName);
-      await supabase.from('profiles').upsert({'id': user.id, 'avatar_url': imageUrl, 'updated_at': DateTime.now().toIso8601String()});
+      await supabase.from('profiles').upsert({
+        'id': _displayUid,
+        'avatar_url': imageUrl,
+        'updated_at': DateTime.now().toIso8601String()
+      });
+
       if (mounted) ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text("프로필 사진이 변경되었습니다!")));
     } catch (e) {
       if (mounted) ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text("업로드 실패: $e"), backgroundColor: Colors.redAccent));
@@ -37,16 +69,14 @@ class _ProfileScreenState extends State<ProfileScreen> {
     }
   }
 
-  // 🔥 상세 정보 바텀 시트 (static 에러 수정 및 슬라이드 최적화)
+  // 🔥 아이템 상세 정보 바텀 시트
   void _showItemDetailSheet(Map<String, dynamic> item) {
-    // 1. 이미지 데이터 정리
     final List<String> allImages = [];
     if (item['image_url'] != null) allImages.add(item['image_url'].toString());
     if (item['images'] != null && item['images'] is List) {
       allImages.addAll(List<String>.from(item['images'].map((e) => e.toString())));
     }
 
-    // 바텀시트 내부 상태 관리를 위한 변수 (static 제거)
     int activeIndex = 0;
 
     showModalBottomSheet(
@@ -66,31 +96,20 @@ class _ProfileScreenState extends State<ProfileScreen> {
                 children: [
                   // --- 이미지 슬라이더 ---
                   SizedBox(
-                    height: 450,
+                    height: 400,
                     width: double.infinity,
                     child: Stack(
                       children: [
                         PageView.builder(
                           itemCount: allImages.length,
-                          physics: const ClampingScrollPhysics(), // 슬라이드 우선 순위 강화
-                          onPageChanged: (index) {
-                            // 🔥 setModalState를 통해 activeIndex를 업데이트해야 점이 바뀝니다.
-                            setModalState(() {
-                              activeIndex = index;
-                            });
-                          },
+                          onPageChanged: (index) => setModalState(() => activeIndex = index),
                           itemBuilder: (context, index) {
                             return ClipRRect(
                               borderRadius: const BorderRadius.vertical(top: Radius.circular(30)),
-                              child: Image.network(
-                                allImages[index],
-                                width: MediaQuery.of(context).size.width,
-                                fit: BoxFit.cover,
-                              ),
+                              child: Image.network(allImages[index], width: double.infinity, fit: BoxFit.cover),
                             );
                           },
                         ),
-                        // 닫기 버튼
                         Positioned(
                           top: 20, right: 20,
                           child: IconButton(
@@ -98,25 +117,19 @@ class _ProfileScreenState extends State<ProfileScreen> {
                             onPressed: () => Navigator.pop(context),
                           ),
                         ),
-                        // 🔥 하단 점 (Indicator)
                         if (allImages.length > 1)
                           Positioned(
-                            bottom: 25, left: 0, right: 0,
+                            bottom: 20, left: 0, right: 0,
                             child: Row(
                               mainAxisAlignment: MainAxisAlignment.center,
-                              children: List.generate(allImages.length, (index) {
-                                return Container(
-                                  margin: const EdgeInsets.symmetric(horizontal: 4),
-                                  width: activeIndex == index ? 10 : 7,
-                                  height: 7,
-                                  decoration: BoxDecoration(
-                                    shape: BoxShape.circle,
-                                    color: activeIndex == index
-                                        ? const Color(0xFFE2FF00)
-                                        : Colors.white.withOpacity(0.3),
-                                  ),
-                                );
-                              }),
+                              children: List.generate(allImages.length, (index) => Container(
+                                margin: const EdgeInsets.symmetric(horizontal: 4),
+                                width: activeIndex == index ? 10 : 7, height: 7,
+                                decoration: BoxDecoration(
+                                  shape: BoxShape.circle,
+                                  color: activeIndex == index ? const Color(0xFFE2FF00) : Colors.white24,
+                                ),
+                              )),
                             ),
                           ),
                       ],
@@ -131,10 +144,9 @@ class _ProfileScreenState extends State<ProfileScreen> {
                         children: [
                           Text(item['brand'] ?? 'BRAND', style: const TextStyle(color: Color(0xFFE2FF00), fontSize: 16, fontWeight: FontWeight.bold)),
                           const SizedBox(height: 8),
-                          Text(item['title'] ?? 'ITEM NAME', style: const TextStyle(color: Colors.white, fontSize: 26, fontWeight: FontWeight.bold)),
-                          const SizedBox(height: 25),
-                          const Divider(color: Colors.white12),
+                          Text(item['title'] ?? 'ITEM NAME', style: const TextStyle(color: Colors.white, fontSize: 24, fontWeight: FontWeight.bold)),
                           const SizedBox(height: 20),
+                          const Divider(color: Colors.white12),
                           _buildDetailRow("상태", item['condition'] ?? "좋음"),
                           _buildDetailRow("사이즈", item['size'] ?? "FREE"),
                           _buildDetailRow("카테고리", item['category'] ?? "기타"),
@@ -142,8 +154,8 @@ class _ProfileScreenState extends State<ProfileScreen> {
                       ),
                     ),
                   ),
-                  // --- 버튼 영역 ---
-                  Padding(
+                  // --- 버튼 영역 (본인일 때만 수정/삭제 노출) ---
+                  if (_isMe) Padding(
                     padding: const EdgeInsets.fromLTRB(20, 0, 20, 30),
                     child: Row(
                       children: [
@@ -182,6 +194,18 @@ class _ProfileScreenState extends State<ProfileScreen> {
                         ),
                       ],
                     ),
+                  ) else Padding(
+                    padding: const EdgeInsets.fromLTRB(20, 0, 20, 30),
+                    child: ElevatedButton(
+                      onPressed: () { /* 교환 신청 로직 */ },
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: const Color(0xFFE2FF00),
+                        foregroundColor: Colors.black,
+                        minimumSize: const Size(double.infinity, 60),
+                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(15)),
+                      ),
+                      child: const Text("교환 신청하기", style: TextStyle(fontWeight: FontWeight.bold, fontSize: 18)),
+                    ),
                   ),
                 ],
               ),
@@ -194,7 +218,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
 
   Widget _buildDetailRow(String label, String value) {
     return Padding(
-      padding: const EdgeInsets.symmetric(vertical: 6),
+      padding: const EdgeInsets.symmetric(vertical: 8),
       child: Row(
         mainAxisAlignment: MainAxisAlignment.spaceBetween,
         children: [
@@ -211,16 +235,12 @@ class _ProfileScreenState extends State<ProfileScreen> {
       builder: (context) => AlertDialog(
         backgroundColor: const Color(0xFF1A1A1A),
         title: const Text("삭제하시겠습니까?", style: TextStyle(color: Colors.white)),
-        content: const Text("복구할 수 없습니다.", style: TextStyle(color: Colors.white70)),
         actions: [
           TextButton(onPressed: () => Navigator.pop(context), child: const Text("취소", style: TextStyle(color: Colors.white54))),
           TextButton(
             onPressed: () async {
               await supabase.from('clothes').delete().eq('id', item['id']);
-              if (context.mounted) {
-                Navigator.pop(context);
-                ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text("삭제되었습니다.")));
-              }
+              if (mounted) { Navigator.pop(context); setState(() {}); }
             },
             child: const Text("삭제", style: TextStyle(color: Colors.redAccent)),
           ),
@@ -231,29 +251,33 @@ class _ProfileScreenState extends State<ProfileScreen> {
 
   @override
   Widget build(BuildContext context) {
-    final user = supabase.auth.currentUser;
     final SwapService swapService = SwapService();
 
     return Scaffold(
       backgroundColor: Colors.black,
       appBar: AppBar(
-        title: const Text("프로필", style: TextStyle(color: Color(0xFFE2FF00), fontWeight: FontWeight.bold)),
+        title: Text(_isMe ? "나의 프로필" : "프로필", style: const TextStyle(color: Color(0xFFE2FF00), fontWeight: FontWeight.bold)),
         backgroundColor: Colors.black,
+        iconTheme: const IconThemeData(color: Colors.white),
         elevation: 0,
         actions: [
-          IconButton(icon: const Icon(Icons.logout, color: Colors.white54), onPressed: () async => await supabase.auth.signOut()),
+          if (_isMe) IconButton(
+              icon: const Icon(Icons.logout, color: Colors.white54),
+              onPressed: () async => await supabase.auth.signOut()
+          ),
         ],
       ),
       body: Column(
         children: [
+          // --- 헤더: 프로필 이미지 및 정보 ---
           Padding(
             padding: const EdgeInsets.all(20.0),
             child: Row(
               children: [
                 GestureDetector(
-                  onTap: _isUploading ? null : _updateProfileImage,
+                  onTap: _updateProfileImage,
                   child: StreamBuilder<List<Map<String, dynamic>>>(
-                    stream: supabase.from('profiles').stream(primaryKey: ['id']).eq('id', user?.id ?? ''),
+                    stream: supabase.from('profiles').stream(primaryKey: ['id']).eq('id', _displayUid),
                     builder: (context, profileSnap) {
                       final avatarUrl = profileSnap.data?.isNotEmpty == true ? profileSnap.data!.first['avatar_url'] : null;
                       return CircleAvatar(
@@ -263,7 +287,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                           radius: 40,
                           backgroundColor: const Color(0xFF1A1A1A),
                           backgroundImage: avatarUrl != null ? NetworkImage(avatarUrl) : null,
-                          child: avatarUrl == null ? const Icon(Icons.person, color: Colors.white24, size: 40) : null,
+                          child: avatarUrl == null ? const Icon(Icons.person, color: Colors.white24, size: 40) : (_isUploading ? const CircularProgressIndicator() : null),
                         ),
                       );
                     },
@@ -273,11 +297,11 @@ class _ProfileScreenState extends State<ProfileScreen> {
                 Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    Text(user?.email ?? "User", style: const TextStyle(color: Colors.white, fontSize: 18, fontWeight: FontWeight.bold)),
+                    Text(_isMe ? (supabase.auth.currentUser?.email ?? "User") : "상대방 옷장", style: const TextStyle(color: Colors.white, fontSize: 18, fontWeight: FontWeight.bold)),
                     const SizedBox(height: 6),
                     StreamBuilder<List<Map<String, dynamic>>>(
-                      stream: swapService.getMyCloset(),
-                      builder: (context, snap) => Text("나의 옷장 ${snap.data?.length ?? 0}벌", style: const TextStyle(color: Color(0xFFE2FF00), fontSize: 14)),
+                      stream: supabase.from('clothes').stream(primaryKey: ['id']).eq('user_id', _displayUid),
+                      builder: (context, snap) => Text("옷장 ${snap.data?.length ?? 0}벌", style: const TextStyle(color: Color(0xFFE2FF00), fontSize: 14)),
                     ),
                   ],
                 ),
@@ -285,21 +309,22 @@ class _ProfileScreenState extends State<ProfileScreen> {
             ),
           ),
           const Divider(color: Colors.white12, height: 1),
+          // --- 옷장 그리드 ---
           Expanded(
             child: StreamBuilder<List<Map<String, dynamic>>>(
-              stream: swapService.getMyCloset(),
+              stream: supabase.from('clothes').stream(primaryKey: ['id']).eq('user_id', _displayUid),
               builder: (context, snapshot) {
                 if (snapshot.connectionState == ConnectionState.waiting) return const Center(child: CircularProgressIndicator(color: Color(0xFFE2FF00)));
-                final myItems = snapshot.data ?? [];
-                if (myItems.isEmpty) return const Center(child: Text("등록된 옷이 없습니다.", style: TextStyle(color: Colors.white24)));
+                final items = snapshot.data ?? [];
+                if (items.isEmpty) return const Center(child: Text("등록된 옷이 없습니다.", style: TextStyle(color: Colors.white24)));
 
                 return GridView.builder(
                   padding: const EdgeInsets.all(16),
                   gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-                    crossAxisCount: 2, mainAxisSpacing: 16, crossAxisSpacing: 16, childAspectRatio: 0.72,
+                    crossAxisCount: 2, mainAxisSpacing: 16, crossAxisSpacing: 16, childAspectRatio: 0.75,
                   ),
-                  itemCount: myItems.length,
-                  itemBuilder: (context, index) => _buildClosetItem(myItems[index]),
+                  itemCount: items.length,
+                  itemBuilder: (context, index) => _buildClosetItem(items[index]),
                 );
               },
             ),
@@ -321,7 +346,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
               child: ClipRRect(
                 borderRadius: const BorderRadius.vertical(top: Radius.circular(20)),
                 child: Image.network(item['image_url'] ?? '', width: double.infinity, fit: BoxFit.cover,
-                  errorBuilder: (context, error, stackTrace) => const Center(child: Icon(Icons.broken_image, color: Colors.white24, size: 40)),
+                  errorBuilder: (context, error, stackTrace) => const Center(child: Icon(Icons.broken_image, color: Colors.white24)),
                 ),
               ),
             ),

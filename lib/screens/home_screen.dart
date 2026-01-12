@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:geolocator/geolocator.dart';
 import 'package:geocoding/geocoding.dart';
-import 'search_screen.dart';
+import 'community_screen.dart'; // ✅ SearchScreen 대신 CommunityScreen 임포트
 import '../widgets/home_slider.dart';
 import '../widgets/home_categories.dart';
 import '../widgets/home_brand_section.dart';
@@ -76,15 +76,24 @@ class _HomeScreenState extends State<HomeScreen> {
         automaticallyImplyLeading: false,
         title: Row(
           children: [
-            Text("홈", style: TextStyle(color: Colors.black, fontWeight: FontWeight.bold, fontSize: 20.sp)),
-            SizedBox(width: 8.w),
-            Text("Basics", style: TextStyle(color: const Color(0xFFC2C2C2), fontWeight: FontWeight.w900, fontSize: 26.sp, letterSpacing: -1.2)),
+            // ✅ 브랜드명 SWAP-FIT으로 변경 및 스타일 조정
+            Text("SWAP", style: TextStyle(color: Colors.black, fontWeight: FontWeight.w900, fontSize: 22.sp)),
+            Text("-FIT", style: TextStyle(color: const Color(0xFFE2FF00), fontWeight: FontWeight.w900, fontSize: 22.sp)),
           ],
         ),
         actions: [
-          IconButton(icon: Icon(Icons.notifications_none, color: Colors.black, size: 28.sp), onPressed: () {}),
-          IconButton(icon: Icon(Icons.search, color: Colors.black, size: 28.sp),
-              onPressed: () => Navigator.push(context, MaterialPageRoute(builder: (context) => const SearchScreen()))),
+          IconButton(
+              icon: Icon(Icons.notifications_none, color: Colors.black, size: 26.sp),
+              onPressed: () {}
+          ),
+          IconButton(
+              icon: Icon(Icons.search, color: Colors.black, size: 26.sp),
+              // ✅ 에러 수정: SearchScreen() -> CommunityScreen()으로 변경
+              onPressed: () => Navigator.push(
+                  context,
+                  MaterialPageRoute(builder: (context) => const CommunityScreen())
+              )
+          ),
           SizedBox(width: 10.w),
         ],
       ),
@@ -107,9 +116,9 @@ class _HomeScreenState extends State<HomeScreen> {
               children: [
                 const HomeSlider(),
 
-                // ✅ 브랜드 섹션 시작 (여백을 48.h로 크게 늘려 아래로 내림)
+                // ✅ 브랜드 섹션
                 Padding(
-                  padding: EdgeInsets.fromLTRB(16.w, 48.h, 16.w, 12.h),
+                  padding: EdgeInsets.fromLTRB(16.w, 40.h, 16.w, 12.h),
                   child: Row(
                     mainAxisAlignment: MainAxisAlignment.spaceBetween,
                     children: [
@@ -123,7 +132,7 @@ class _HomeScreenState extends State<HomeScreen> {
                 SizedBox(height: 20.h),
                 const HomeCategories(),
                 const SelectClothesFeed(),
-                SizedBox(height: 50.h),
+                SizedBox(height: 100.h), // 하단 네비게이션 바 고려하여 여백 확보
               ],
             ),
           ),

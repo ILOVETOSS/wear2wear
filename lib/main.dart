@@ -2,7 +2,9 @@ import 'package:flutter/material.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:curved_navigation_bar/curved_navigation_bar.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
-import 'screens/search_screen.dart';
+
+// ✅ 커뮤니티 스크린 임포트 활성화
+import 'screens/community_screen.dart';
 import 'screens/home_screen.dart';
 import 'screens/match_screen.dart';
 import 'screens/swap_screen.dart';
@@ -42,6 +44,7 @@ class MyApp extends StatelessWidget {
               elevation: 0,
             ),
           ),
+          title: 'SWAP-FIT',
           home: supabase.auth.currentSession == null
               ? const LoginScreen()
               : const MainNavigationScreen(),
@@ -52,9 +55,7 @@ class MyApp extends StatelessWidget {
 }
 
 class MainNavigationScreen extends StatefulWidget {
-  // ✅ 전역에서 접근 가능하도록 GlobalKey 정의
   static final GlobalKey<MainNavigationScreenState> navKey = GlobalKey<MainNavigationScreenState>();
-
   const MainNavigationScreen({super.key});
 
   @override
@@ -64,15 +65,15 @@ class MainNavigationScreen extends StatefulWidget {
 class MainNavigationScreenState extends State<MainNavigationScreen> {
   int currentTabIndex = 0;
 
+  // ✅ 2번째 화면 클래스명 일치 확인
   final List<Widget> _screens = [
     const HomeScreen(),
-    const SearchScreen(),
+    const CommunityScreen(),
     const SwapScreen(),
     const MatchScreen(),
     const ProfileScreen(),
   ];
 
-  // ✅ 외부에서 호출 가능하도록 만든 탭 변경 함수
   void changeTab(int index) {
     setState(() {
       currentTabIndex = index;
@@ -93,7 +94,6 @@ class MainNavigationScreenState extends State<MainNavigationScreen> {
     bool showUploadButton = currentTabIndex != 2;
 
     return Scaffold(
-      // ✅ Key 연결
       key: MainNavigationScreen.navKey,
       extendBody: true,
       body: _screens[currentTabIndex],
@@ -116,7 +116,7 @@ class MainNavigationScreenState extends State<MainNavigationScreen> {
         height: 60.0,
         items: [
           _buildNavItem(Icons.home_filled, "HOME", 0),
-          _buildNavItem(Icons.search, "SEARCH", 1),
+          _buildNavItem(Icons.dynamic_feed_rounded, "COMMUNITY", 1),
           _buildNavItem(Icons.swap_horiz_rounded, "SWAP", 2),
           _buildNavItem(Icons.chat_bubble_rounded, "CHAT", 3),
           _buildNavItem(Icons.person_rounded, "MY", 4),
