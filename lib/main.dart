@@ -3,12 +3,11 @@ import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:curved_navigation_bar/curved_navigation_bar.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 
-// ✅ 커뮤니티 스크린 임포트 활성화
+import 'theme/app_theme.dart'; // 테마 임포트 추가
 import 'screens/community_screen.dart';
 import 'screens/home_screen.dart';
 import 'screens/match_screen.dart';
 import 'screens/swap_screen.dart';
-import 'screens/upload_screen.dart';
 import 'screens/profile_screen.dart';
 import 'screens/login_screen.dart';
 
@@ -35,15 +34,7 @@ class MyApp extends StatelessWidget {
       builder: (context, child) {
         return MaterialApp(
           debugShowCheckedModeBanner: false,
-          theme: ThemeData.light().copyWith(
-            scaffoldBackgroundColor: Colors.white,
-            primaryColor: Colors.black,
-            appBarTheme: const AppBarTheme(
-              backgroundColor: Colors.white,
-              foregroundColor: Colors.black,
-              elevation: 0,
-            ),
-          ),
+          theme: AppTheme.blackWhiteTheme, // ✅ 단일화된 블랙&화이트 테마 적용
           title: 'SWAP-FIT',
           home: supabase.auth.currentSession == null
               ? const LoginScreen()
@@ -65,7 +56,6 @@ class MainNavigationScreen extends StatefulWidget {
 class MainNavigationScreenState extends State<MainNavigationScreen> {
   int currentTabIndex = 0;
 
-  // ✅ 2번째 화면 클래스명 일치 확인
   final List<Widget> _screens = [
     const HomeScreen(),
     const CommunityScreen(),
@@ -80,37 +70,12 @@ class MainNavigationScreenState extends State<MainNavigationScreen> {
     });
   }
 
-  void _openUploadPage() {
-    Navigator.of(context).push(
-      MaterialPageRoute(
-        fullscreenDialog: true,
-        builder: (context) => const UploadScreen(),
-      ),
-    );
-  }
-
   @override
   Widget build(BuildContext context) {
-    bool showUploadButton = currentTabIndex != 2;
-
     return Scaffold(
       key: MainNavigationScreen.navKey,
       extendBody: true,
       body: _screens[currentTabIndex],
-      floatingActionButton: showUploadButton
-          ? Padding(
-        padding: EdgeInsets.only(bottom: 80.h),
-        child: FloatingActionButton.extended(
-          onPressed: _openUploadPage,
-          backgroundColor: Colors.black,
-          foregroundColor: const Color(0xFFE2FF00),
-          elevation: 4,
-          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(30.r)),
-          label: Text("UPLOAD", style: TextStyle(fontWeight: FontWeight.w900, fontSize: 13.sp)),
-          icon: const Icon(Icons.add_rounded),
-        ),
-      )
-          : null,
       bottomNavigationBar: CurvedNavigationBar(
         index: currentTabIndex,
         height: 60.0,
@@ -134,7 +99,7 @@ class MainNavigationScreenState extends State<MainNavigationScreen> {
     return Column(
       mainAxisAlignment: MainAxisAlignment.center,
       children: [
-        Icon(icon, size: 24, color: isSelected ? const Color(0xFFE2FF00) : Colors.white),
+        Icon(icon, size: 24, color: isSelected ? Colors.white : Colors.grey),
         if (!isSelected)
           Padding(
             padding: const EdgeInsets.only(top: 2),

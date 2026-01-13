@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
-import 'profile_screen.dart'; // 상세 페이지나 프로필 이동을 위해 필요
+import 'item_detail_screen.dart'; // ✅ 아이템 상세 페이지 임포트
 
 class SearchScreen extends StatefulWidget {
   const SearchScreen({super.key});
@@ -15,7 +15,6 @@ class _SearchScreenState extends State<SearchScreen> {
   String _searchQuery = "";
   bool _isSearching = false;
 
-  // 인기 브랜드 리스트 (검색 전 가이드용)
   final List<Map<String, dynamic>> _trendingBrands = [
     {'name': 'NIKE', 'icon': Icons.bolt},
     {'name': 'ADIDAS', 'icon': Icons.api},
@@ -27,7 +26,7 @@ class _SearchScreenState extends State<SearchScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: Colors.black, // 다크 테마 유지
+      backgroundColor: Colors.black,
       appBar: AppBar(
         backgroundColor: Colors.black,
         elevation: 0,
@@ -64,7 +63,6 @@ class _SearchScreenState extends State<SearchScreen> {
               border: InputBorder.none,
               contentPadding: const EdgeInsets.symmetric(vertical: 10),
             ),
-            // ✅ 한 글자만 쳐도 바로 필터링되도록 설정
             onChanged: (val) {
               setState(() {
                 _searchQuery = val.trim();
@@ -78,7 +76,6 @@ class _SearchScreenState extends State<SearchScreen> {
     );
   }
 
-  // 1. 검색 전: 인기 브랜드 가이드
   Widget _buildSearchHome() {
     return ListView(
       padding: const EdgeInsets.all(24),
@@ -121,18 +118,15 @@ class _SearchScreenState extends State<SearchScreen> {
     );
   }
 
-  // 2. 검색 결과: 실시간 필터링 (아이템만 표시)
   Widget _buildSearchResults() {
     return StreamBuilder<List<Map<String, dynamic>>>(
-      // 'clothes' 테이블에서 실시간으로 데이터 가져오기
       stream: _supabase.from('clothes').stream(primaryKey: ['id']),
       builder: (context, snapshot) {
         if (!snapshot.hasData) return const Center(child: CircularProgressIndicator(color: Color(0xFFE2FF00)));
 
-        // ✅ 한 글자라도 포함되어 있으면 리스트에 노출 (대소문자 구분 없음)
         final results = snapshot.data!.where((item) {
-          final title = item['title'].toString().toLowerCase();
-          final brand = item['brand'].toString().toLowerCase();
+          final title = item['title']?.toString().toLowerCase() ?? "";
+          final brand = item['brand']?.toString().toLowerCase() ?? "";
           final query = _searchQuery.toLowerCase();
           return title.contains(query) || brand.contains(query);
         }).toList();
@@ -155,40 +149,52 @@ class _SearchScreenState extends State<SearchScreen> {
           itemCount: results.length,
           itemBuilder: (context, index) {
             final item = results[index];
-            return Container(
-              decoration: BoxDecoration(
-                color: const Color(0xFF1A1A1A),
-                borderRadius: BorderRadius.circular(15),
-              ),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Expanded(
-                    child: ClipRRect(
-                      borderRadius: const BorderRadius.vertical(top: Radius.circular(15)),
-                      child: Image.network(
-                        item['image_url'] ?? '',
-                        width: double.infinity,
-                        fit: BoxFit.cover,
-                        errorBuilder: (context, e, s) => const Icon(Icons.image_not_supported, color: Colors.white10),
+            // ✅ GestureDetector를 추가하여 클릭 시 상세 페이지로 이동
+            return GestureDetector(
+              onTap: () {
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(
+                    builder: (context) => ItemDetailScreen(item: item),
+                  ),
+                );
+              },
+              child: Container(
+                decoration: BoxDecoration(
+                  color: const Color(0xFF1A1A1A),
+                  borderRadius: BorderRadius.circular(15),
+                  border: Border.all(color: Colors.white10), // 연한 테두리 추가
+                ),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Expanded(
+                      child: ClipRRect(
+                        borderRadius: const BorderRadius.vertical(top: Radius.circular(15)),
+                        child: Image.network(
+                          item['image_url'] ?? '',
+                          width: double.infinity,
+                          fit: BoxFit.cover,
+                          errorBuilder: (context, e, s) => const Icon(Icons.image_not_supported, color: Colors.white10),
+                        ),
                       ),
                     ),
-                  ),
-                  Padding(
-                    padding: const EdgeInsets.all(12),
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Text(item['brand'] ?? 'BRAND',
-                            style: const TextStyle(color: Color(0xFFE2FF00), fontSize: 10, fontWeight: FontWeight.bold)),
-                        const SizedBox(height: 4),
-                        Text(item['title'] ?? 'ITEM',
-                            style: const TextStyle(color: Colors.white, fontSize: 13, fontWeight: FontWeight.w500),
-                            maxLines: 1, overflow: TextOverflow.ellipsis),
-                      ],
+                    Padding(
+                      padding: const EdgeInsets.all(12),
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(item['brand']?.toUpperCase() ?? 'BRAND',
+                              style: const TextStyle(color: Color(0xFFE2FF00), fontSize: 10, fontWeight: FontWeight.bold)),
+                          const SizedBox(height: 4),
+                          Text(item['title'] ?? 'ITEM',
+                              style: const TextStyle(color: Colors.white, fontSize: 13, fontWeight: FontWeight.w500),
+                              maxLines: 1, overflow: TextOverflow.ellipsis),
+                        ],
+                      ),
                     ),
-                  ),
-                ],
+                  ],
+                ),
               ),
             );
           },

@@ -256,7 +256,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
     return Scaffold(
       backgroundColor: Colors.black,
       appBar: AppBar(
-        title: Text(_isMe ? "나의 프로필" : "프로필", style: const TextStyle(color: Color(0xFFE2FF00), fontWeight: FontWeight.bold)),
+        title: Text(_isMe ? "MY-PROFILE" : "프로필", style: const TextStyle(color: Color(0xFFE2FF00), fontWeight: FontWeight.bold)),
         backgroundColor: Colors.black,
         iconTheme: const IconThemeData(color: Colors.white),
         elevation: 0,
