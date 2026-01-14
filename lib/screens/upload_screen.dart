@@ -1,7 +1,8 @@
+import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:flutter/foundation.dart';
-import 'package:flutter_screenutil/flutter_screenutil.dart'; // 추가됨
+import 'package:flutter_screenutil/flutter_screenutil.dart';
 import '../services/database_service.dart';
 
 class UploadScreen extends StatefulWidget {
@@ -16,11 +17,12 @@ class _UploadScreenState extends State<UploadScreen> with SingleTickerProviderSt
   late TabController _tabController;
   final DatabaseService _dbService = DatabaseService();
 
-  XFile? _mainImage;
-  Uint8List? _webImage;
+  // ✅ 사진 관리를 위한 리스트 (최대 4장)
+  final List<XFile> _selectedImages = [];
+  final List<Uint8List> _webImages = [];
   bool _isUploading = false;
 
-  // ✅ 기존 기능 그대로 유지
+  // 상태 관리 변수들
   String _authStatus = '모름';
   String _tradeType = '둘다 가능';
   bool _agreedToDisclaimer = false;
@@ -30,8 +32,8 @@ class _UploadScreenState extends State<UploadScreen> with SingleTickerProviderSt
   final TextEditingController _ootdContentController = TextEditingController();
   String _selectedOotdCategory = '스트릿';
 
-  // ✅ 테마 컬러 변수
-  final Color _pointColor = const Color(0xFFB3EB00); // 네온 라임
+  // 디자인 포인트 컬러
+  final Color _pointColor = const Color(0xFFB3EB00);
 
   @override
   void initState() {
@@ -39,20 +41,44 @@ class _UploadScreenState extends State<UploadScreen> with SingleTickerProviderSt
     _tabController = TabController(length: 2, vsync: this);
   }
 
-  Future<void> _pickImage() async {
-    final img = await ImagePicker().pickImage(source: ImageSource.gallery, imageQuality: 50);
-    if (img != null) {
-      final bytes = await img.readAsBytes();
-      setState(() {
-        _mainImage = img;
-        _webImage = bytes;
-      });
+  // ✅ 다중 이미지 선택 (최대 4장 제한)
+  Future<void> _pickImages() async {
+    if (_selectedImages.length >= 4) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text("사진은 최대 4장까지 등록 가능합니다.")),
+      );
+      return;
+    }
+
+    final List<XFile> pickedFiles = await ImagePicker().pickMultiImage(
+      imageQuality: 50,
+    );
+
+    if (pickedFiles.isNotEmpty) {
+      for (var file in pickedFiles) {
+        if (_selectedImages.length < 4) {
+          final bytes = await file.readAsBytes();
+          setState(() {
+            _selectedImages.add(file);
+            _webImages.add(bytes);
+          });
+        }
+      }
     }
   }
 
+  // ✅ 이미지 개별 삭제
+  void _removeImage(int index) {
+    setState(() {
+      _selectedImages.removeAt(index);
+      _webImages.removeAt(index);
+    });
+  }
+
+  // ✅ 데이터 저장 로직
   Future<void> _handleSave() async {
-    if (_mainImage == null) {
-      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text("이미지를 선택해주세요.")));
+    if (_selectedImages.isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text("최소 1장의 이미지를 선택해주세요.")));
       return;
     }
 
@@ -66,9 +92,11 @@ class _UploadScreenState extends State<UploadScreen> with SingleTickerProviderSt
     setState(() => _isUploading = true);
 
     bool success = false;
+
+    // ✅ DatabaseService에 리스트 전체(imageFiles) 전달
     if (_tabController.index == 0) {
       success = await _dbService.uploadClothingItem(
-        imageFile: _mainImage!,
+        imageFiles: _selectedImages,
         brand: _brandController.text,
         title: _titleController.text,
         extraData: {
@@ -79,7 +107,7 @@ class _UploadScreenState extends State<UploadScreen> with SingleTickerProviderSt
       );
     } else {
       success = await _dbService.uploadCommunityPost(
-        imageFile: _mainImage!,
+        imageFiles: _selectedImages,
         category: _selectedOotdCategory,
         content: _ootdContentController.text,
       );
@@ -87,14 +115,20 @@ class _UploadScreenState extends State<UploadScreen> with SingleTickerProviderSt
 
     if (mounted) {
       setState(() => _isUploading = false);
-      if (success) Navigator.pop(context);
+      if (success) {
+        Navigator.pop(context);
+      } else {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text("등록 중 오류가 발생했습니다. DB 설정을 확인해주세요.")),
+        );
+      }
     }
   }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: Colors.white, // ✅ 배경 화이트로 변경
+      backgroundColor: Colors.white,
       appBar: AppBar(
         backgroundColor: Colors.white,
         elevation: 0,
@@ -125,17 +159,16 @@ class _UploadScreenState extends State<UploadScreen> with SingleTickerProviderSt
         ],
       ),
       bottomNavigationBar: Container(
-        padding: EdgeInsets.fromLTRB(20.w, 10.h, 20.w, 30.h),
+        padding: EdgeInsets.fromLTRB(20.w, 10.h, 20.w, 34.h), // 하단 여백 최적화
         color: Colors.white,
         child: ElevatedButton(
-          onPressed: _handleSave,
+          onPressed: _isUploading ? null : _handleSave,
           style: ElevatedButton.styleFrom(
-              backgroundColor: Colors.black, // ✅ 버튼 블랙
-              foregroundColor: _pointColor,  // ✅ 글자 라임
+              backgroundColor: Colors.black,
+              foregroundColor: _pointColor,
               minimumSize: const Size(double.infinity, 60),
               shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(15)),
-              elevation: 0
-          ),
+              elevation: 0),
           child: const Text("등록하기", style: TextStyle(fontWeight: FontWeight.bold, fontSize: 18)),
         ),
       ),
@@ -148,8 +181,10 @@ class _UploadScreenState extends State<UploadScreen> with SingleTickerProviderSt
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          _buildImagePickerWidget(),
+          // 📸 가로 스크롤 이미지 피커
+          _buildMultiImagePicker(),
           const SizedBox(height: 30),
+
           if (isClothing) ...[
             _label("브랜드"),
             _buildTextField(_brandController, "예: 나이키"),
@@ -157,23 +192,19 @@ class _UploadScreenState extends State<UploadScreen> with SingleTickerProviderSt
             _label("아이템 명"),
             _buildTextField(_titleController, "예: 조던 1 레트로"),
             const SizedBox(height: 30),
-
             _label("거래 방식"),
             _buildChoiceChips(['판매만', '스왑만', '둘다 가능'], _tradeType, (val) {
               setState(() => _tradeType = val);
             }),
             const SizedBox(height: 20),
-
             _label("정품 여부"),
             _buildChoiceChips(['정품', '가품', '모름'], _authStatus, (val) {
               setState(() => _authStatus = val);
             }),
             const SizedBox(height: 30),
-
             const Divider(color: Colors.black12),
             const SizedBox(height: 10),
             _buildDisclaimerTile(),
-            const SizedBox(height: 20),
           ] else ...[
             _label("카테고리"),
             _buildOotdCategoryChips(),
@@ -182,6 +213,102 @@ class _UploadScreenState extends State<UploadScreen> with SingleTickerProviderSt
             _buildTextField(_ootdContentController, "스타일을 설명해주세요", maxLines: 4),
           ],
         ],
+      ),
+    );
+  }
+
+  // ✅ 다중 이미지 선택 UI (가로 스크롤)
+  Widget _buildMultiImagePicker() {
+    return SizedBox(
+      height: 110.h,
+      child: ListView.builder(
+        scrollDirection: Axis.horizontal,
+        itemCount: _selectedImages.length + 1,
+        itemBuilder: (context, index) {
+          if (index == 0) {
+            return GestureDetector(
+              onTap: _pickImages,
+              child: Container(
+                width: 110.h,
+                margin: const EdgeInsets.only(right: 12),
+                decoration: BoxDecoration(
+                  color: const Color(0xFFF5F5F5),
+                  borderRadius: BorderRadius.circular(15),
+                  border: Border.all(color: Colors.black12),
+                ),
+                child: Column(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    const Icon(Icons.add_a_photo_outlined, color: Colors.grey),
+                    const SizedBox(height: 5),
+                    Text("${_selectedImages.length}/4",
+                        style: const TextStyle(color: Colors.grey, fontSize: 12, fontWeight: FontWeight.bold)),
+                  ],
+                ),
+              ),
+            );
+          }
+
+          int imgIndex = index - 1;
+          return Padding(
+            padding: const EdgeInsets.only(right: 12),
+            child: Stack(
+              children: [
+                Container(
+                  width: 110.h,
+                  height: 110.h,
+                  decoration: BoxDecoration(
+                    borderRadius: BorderRadius.circular(15),
+                    image: DecorationImage(
+                      image: MemoryImage(_webImages[imgIndex]),
+                      fit: BoxFit.cover,
+                    ),
+                  ),
+                ),
+                Positioned(
+                  top: 5,
+                  right: 5,
+                  child: GestureDetector(
+                    onTap: () => _removeImage(imgIndex),
+                    child: Container(
+                      padding: const EdgeInsets.all(4),
+                      decoration: const BoxDecoration(
+                        color: Colors.black54,
+                        shape: BoxShape.circle,
+                      ),
+                      child: const Icon(Icons.close, size: 14, color: Colors.white),
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          );
+        },
+      ),
+    );
+  }
+
+  Widget _label(String text) => Padding(
+    padding: const EdgeInsets.only(left: 4, bottom: 10),
+    child: Text(text, style: const TextStyle(color: Colors.black, fontWeight: FontWeight.w900, fontSize: 15)),
+  );
+
+  Widget _buildTextField(TextEditingController controller, String hint, {int maxLines = 1}) {
+    return Container(
+      decoration: BoxDecoration(
+        color: Colors.black,
+        borderRadius: BorderRadius.circular(12),
+      ),
+      child: TextField(
+        controller: controller,
+        maxLines: maxLines,
+        style: const TextStyle(color: Colors.white),
+        decoration: InputDecoration(
+          hintText: hint,
+          hintStyle: const TextStyle(color: Colors.white38, fontSize: 14),
+          contentPadding: const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
+          border: InputBorder.none,
+        ),
       ),
     );
   }
@@ -195,10 +322,10 @@ class _UploadScreenState extends State<UploadScreen> with SingleTickerProviderSt
           label: Text(option),
           selected: isSelected,
           onSelected: (_) => onSelected(option),
-          selectedColor: Colors.black, // ✅ 선택시 블랙 배경
-          backgroundColor: const Color(0xFFF5F5F5), // ✅ 미선택시 연회색
+          selectedColor: Colors.black,
+          backgroundColor: const Color(0xFFF5F5F5),
           labelStyle: TextStyle(
-            color: isSelected ? _pointColor : Colors.black54, // ✅ 선택시 라임 글자
+            color: isSelected ? _pointColor : Colors.black54,
             fontWeight: FontWeight.bold,
           ),
           side: BorderSide.none,
@@ -231,58 +358,6 @@ class _UploadScreenState extends State<UploadScreen> with SingleTickerProviderSt
             ),
           ),
         ],
-      ),
-    );
-  }
-
-  Widget _buildImagePickerWidget() {
-    return GestureDetector(
-      onTap: _pickImage,
-      child: Container(
-        height: 250,
-        width: double.infinity,
-        decoration: BoxDecoration(
-            color: const Color(0xFFF5F5F5),
-            borderRadius: BorderRadius.circular(20),
-            border: Border.all(color: Colors.black12)
-        ),
-        child: _webImage != null
-            ? ClipRRect(borderRadius: BorderRadius.circular(20), child: Image.memory(_webImage!, fit: BoxFit.cover))
-            : Center(
-            child: Column(
-              mainAxisAlignment: MainAxisAlignment.center,
-              children: [
-                Icon(Icons.add_a_photo_outlined, size: 40, color: Colors.grey[400]),
-                const SizedBox(height: 10),
-                Text("제품 사진 추가", style: TextStyle(color: Colors.grey[400], fontWeight: FontWeight.bold)),
-              ],
-            )
-        ),
-      ),
-    );
-  }
-
-  Widget _label(String text) => Padding(
-    padding: const EdgeInsets.only(left: 4, bottom: 10),
-    child: Text(text, style: const TextStyle(color: Colors.black, fontWeight: FontWeight.w900, fontSize: 15)),
-  );
-
-  Widget _buildTextField(TextEditingController controller, String hint, {int maxLines = 1}) {
-    return Container(
-      decoration: BoxDecoration(
-        color: Colors.black, // ✅ 로그인 필드와 동일하게 블랙 배경
-        borderRadius: BorderRadius.circular(12),
-      ),
-      child: TextField(
-        controller: controller,
-        maxLines: maxLines,
-        style: const TextStyle(color: Colors.white), // ✅ 글자는 화이트
-        decoration: InputDecoration(
-          hintText: hint,
-          hintStyle: const TextStyle(color: Colors.white38, fontSize: 14),
-          contentPadding: const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
-          border: InputBorder.none,
-        ),
       ),
     );
   }

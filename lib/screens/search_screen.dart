@@ -16,7 +16,9 @@ class _SearchScreenState extends State<SearchScreen> {
   String _searchQuery = "";
   bool _isSearching = false;
 
-  // ✅ 앱 공통 포인트 컬러 (네온 라임)
+  // ✅ 초기 데이터 (테스트용)
+  List<String> _recentSearches = ["나이키", "아디다스", "스투시"];
+
   final Color _pointColor = const Color(0xFFB3EB00);
 
   final List<Map<String, dynamic>> _trendingBrands = [
@@ -27,10 +29,27 @@ class _SearchScreenState extends State<SearchScreen> {
     {'name': 'ZARA', 'icon': Icons.text_fields},
   ];
 
+  // ✅ 최근 검색어 저장 및 검색 실행 함수
+  void _handleSearch(String query) {
+    String trimmedQuery = query.trim();
+    if (trimmedQuery.isEmpty) return;
+
+    setState(() {
+      // 리스트 업데이트
+      _recentSearches.remove(trimmedQuery);
+      _recentSearches.insert(0, trimmedQuery);
+      if (_recentSearches.length > 10) _recentSearches.removeLast();
+
+      _searchQuery = trimmedQuery;
+      _searchController.text = trimmedQuery;
+      _isSearching = true;
+    });
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: Colors.white, // ✅ 화이트 배경
+      backgroundColor: Colors.white,
       appBar: AppBar(
         backgroundColor: Colors.white,
         elevation: 0,
@@ -45,7 +64,7 @@ class _SearchScreenState extends State<SearchScreen> {
           child: Container(
             height: 42,
             decoration: BoxDecoration(
-              color: Colors.black, // ✅ 블랙 입력창 (앱 일관성)
+              color: Colors.black,
               borderRadius: BorderRadius.circular(12),
             ),
             child: TextField(
@@ -72,6 +91,7 @@ class _SearchScreenState extends State<SearchScreen> {
                 border: InputBorder.none,
                 contentPadding: const EdgeInsets.symmetric(vertical: 10),
               ),
+              onSubmitted: (val) => _handleSearch(val), // 엔터 치면 저장
               onChanged: (val) {
                 setState(() {
                   _searchQuery = val.trim();
@@ -82,7 +102,8 @@ class _SearchScreenState extends State<SearchScreen> {
           ),
         ),
       ),
-      body: _isSearching ? _buildSearchResults() : _buildSearchHome(),
+      // 검색창이 완전히 비어있을 때만 홈(최근 검색어)을 보여줌
+      body: (_searchQuery.isEmpty) ? _buildSearchHome() : _buildSearchResults(),
     );
   }
 
@@ -90,6 +111,28 @@ class _SearchScreenState extends State<SearchScreen> {
     return ListView(
       padding: const EdgeInsets.all(24),
       children: [
+        // ✅ 최근 검색어 섹션
+        if (_recentSearches.isNotEmpty) ...[
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              const Text("최근 검색어",
+                  style: TextStyle(color: Colors.black, fontSize: 14, fontWeight: FontWeight.w900, letterSpacing: 1.2)),
+              GestureDetector(
+                onTap: () => setState(() => _recentSearches.clear()),
+                child: const Text("전체 삭제", style: TextStyle(color: Colors.black38, fontSize: 12)),
+              ),
+            ],
+          ),
+          const SizedBox(height: 15),
+          Wrap(
+            spacing: 10,
+            runSpacing: 10,
+            children: _recentSearches.map((keyword) => _buildRecentChip(keyword)).toList(),
+          ),
+          const SizedBox(height: 40),
+        ],
+
         const Text("인기 브랜드",
             style: TextStyle(color: Colors.black, fontSize: 14, fontWeight: FontWeight.w900, letterSpacing: 1.2)),
         const SizedBox(height: 20),
@@ -103,16 +146,10 @@ class _SearchScreenState extends State<SearchScreen> {
           itemBuilder: (context, index) {
             final b = _trendingBrands[index];
             return GestureDetector(
-              onTap: () {
-                setState(() {
-                  _searchController.text = b['name'];
-                  _searchQuery = b['name'];
-                  _isSearching = true;
-                });
-              },
+              onTap: () => _handleSearch(b['name']),
               child: Container(
                 decoration: BoxDecoration(
-                  color: const Color(0xFFF5F5F5), // 연회색 배경
+                  color: const Color(0xFFF5F5F5),
                   borderRadius: BorderRadius.circular(15),
                   border: Border.all(color: Colors.black.withOpacity(0.05)),
                 ),
@@ -133,6 +170,30 @@ class _SearchScreenState extends State<SearchScreen> {
     );
   }
 
+  Widget _buildRecentChip(String label) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+      decoration: BoxDecoration(
+        color: const Color(0xFFF5F5F5),
+        borderRadius: BorderRadius.circular(20),
+      ),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          GestureDetector(
+            onTap: () => _handleSearch(label),
+            child: Text(label, style: const TextStyle(color: Colors.black, fontSize: 13)),
+          ),
+          const SizedBox(width: 8),
+          GestureDetector(
+            onTap: () => setState(() => _recentSearches.remove(label)),
+            child: const Icon(Icons.close, size: 14, color: Colors.black38),
+          ),
+        ],
+      ),
+    );
+  }
+
   Widget _buildSearchResults() {
     return StreamBuilder<List<Map<String, dynamic>>>(
       stream: _supabase.from('clothes').stream(primaryKey: ['id']),
@@ -148,7 +209,7 @@ class _SearchScreenState extends State<SearchScreen> {
 
         if (results.isEmpty) {
           return Center(
-            child: Text("'$_searchQuery'에 대한 검색 결과가 없습니다.",
+            child: Text("'$_searchQuery'에 대한 결과가 없습니다.",
                 style: const TextStyle(color: Colors.black38, fontWeight: FontWeight.bold)),
           );
         }
@@ -166,6 +227,7 @@ class _SearchScreenState extends State<SearchScreen> {
             final item = results[index];
             return GestureDetector(
               onTap: () {
+                _handleSearch(_searchQuery); // 상세 페이지 갈 때도 현재 검색어 기록 저장
                 Navigator.push(
                   context,
                   MaterialPageRoute(builder: (context) => ItemDetailScreen(item: item)),

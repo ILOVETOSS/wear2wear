@@ -1,7 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import '../main.dart'; // supabase 전역 변수 참조
-import 'home_item_card.dart'; // 🔥 GridviewItemCard 대신 실제 파일명인 home_item_card로 연결
+import 'home_item_card.dart';
+
+import '../screens/item_detail_screen.dart';
 
 class SelectClothesFeed extends StatefulWidget {
   const SelectClothesFeed({Key? key}) : super(key: key);
@@ -12,7 +14,7 @@ class SelectClothesFeed extends StatefulWidget {
 
 class _SelectClothesFeedState extends State<SelectClothesFeed> {
 
-  // 1. 스왑 제안 로직 (기존 앱 기능 유지)
+  // 1. 스왑 제안 로직 (유지)
   Future<void> _sendSwapProposal(Map<String, dynamic> myItem, Map<String, dynamic> targetItem) async {
     try {
       await supabase.from('swaps').insert({
@@ -20,9 +22,10 @@ class _SelectClothesFeedState extends State<SelectClothesFeed> {
         'to_user_id': targetItem['user_id'],
         'my_item_id': myItem['id'],
         'target_item_id': targetItem['id'],
+        'status': 'pending', // 상태값 추가
       });
       if (mounted) {
-        Navigator.pop(context); // 내 옷 선택 시트 닫기
+        Navigator.pop(context);
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
               content: Text("${targetItem['brand']}에 스왑 제안 완료!"),
@@ -39,7 +42,7 @@ class _SelectClothesFeedState extends State<SelectClothesFeed> {
     }
   }
 
-  // 2. 내 옷장 선택 시트
+  // 2. 내 옷장 선택 시트 (유지)
   void _showMyClosetPicker(Map<String, dynamic> targetItem) {
     showModalBottomSheet(
       context: context,
@@ -98,56 +101,12 @@ class _SelectClothesFeedState extends State<SelectClothesFeed> {
     );
   }
 
-  // 3. 상세 바텀시트
-  void _showItemDetail(Map<String, dynamic> item) {
-    showModalBottomSheet(
-      context: context,
-      isScrollControlled: true,
-      backgroundColor: Colors.transparent,
-      builder: (context) => Container(
-        height: MediaQuery.of(context).size.height * 0.8,
-        decoration: const BoxDecoration(
-            color: Color(0xFF1A1A1A),
-            borderRadius: BorderRadius.vertical(top: Radius.circular(30))
-        ),
-        child: Column(
-          children: [
-            Expanded(
-              child: SingleChildScrollView(
-                padding: const EdgeInsets.all(24),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    ClipRRect(
-                        borderRadius: BorderRadius.circular(20),
-                        child: Image.network(item['image_url'] ?? '', fit: BoxFit.cover)
-                    ),
-                    SizedBox(height: 20.h),
-                    Text(item['brand'] ?? 'BRAND', style: const TextStyle(color: Color(0xFFE2FF00), fontSize: 18, fontWeight: FontWeight.bold)),
-                    Text(item['title'] ?? 'ITEM', style: const TextStyle(color: Colors.white, fontSize: 24, fontWeight: FontWeight.bold)),
-                    SizedBox(height: 15.h),
-                    Text(item['description'] ?? '', style: const TextStyle(color: Colors.white70, fontSize: 16)),
-                  ],
-                ),
-              ),
-            ),
-            Padding(
-              padding: const EdgeInsets.all(24),
-              child: ElevatedButton(
-                onPressed: () {
-                  Navigator.pop(context); // 상세 시트 닫기
-                  _showMyClosetPicker(item); // 내 옷 선택 시트 열기
-                },
-                style: ElevatedButton.styleFrom(
-                    backgroundColor: const Color(0xFFE2FF00),
-                    minimumSize: const Size(double.infinity, 60),
-                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16))
-                ),
-                child: const Text("스왑 제안하기", style: TextStyle(color: Colors.black, fontWeight: FontWeight.bold, fontSize: 18)),
-              ),
-            ),
-          ],
-        ),
+  // 🔥 3. 상세 페이지로 이동 기능 (바텀시트 대신 페이지 이동으로 교체)
+  void _navigateToDetail(Map<String, dynamic> item) {
+    Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder: (context) => ItemDetailScreen(item: item),
       ),
     );
   }
@@ -155,11 +114,12 @@ class _SelectClothesFeedState extends State<SelectClothesFeed> {
   @override
   Widget build(BuildContext context) {
     return StreamBuilder<List<Map<String, dynamic>>>(
-      stream: supabase.from('clothes').stream(primaryKey: ['id']),
+      // 최신순 정렬 추가
+      stream: supabase.from('clothes').stream(primaryKey: ['id']).order('created_at'),
       builder: (context, snapshot) {
         if (!snapshot.hasData) return const Center(child: CircularProgressIndicator(color: Color(0xFFE2FF00)));
 
-        // 내 옷이 아닌 것만 필터링
+        // 내 옷이 아닌 것만 필터링 (남의 옷만 홈에 노출)
         final items = snapshot.data!.where((i) => i['user_id'] != supabase.auth.currentUser?.id).toList();
 
         return GridView.builder(
@@ -170,13 +130,16 @@ class _SelectClothesFeedState extends State<SelectClothesFeed> {
               crossAxisCount: 2,
               mainAxisSpacing: 20,
               crossAxisSpacing: 20,
-              childAspectRatio: 0.7
+              childAspectRatio: 0.72 // 카드 비율 최적화
           ),
           itemCount: items.length,
-          itemBuilder: (context, index) => HomeItemCard( // 🔥 HomeItemCard로 이름 수정 완료
-              item: items[index],
-              onTap: () => _showItemDetail(items[index])
-          ),
+          itemBuilder: (context, index) {
+            final item = items[index];
+            return HomeItemCard(
+              item: item,
+              onTap: () => _navigateToDetail(item), // 클릭 시 상세 페이지(정품/거래방식 포함)로 이동
+            );
+          },
         );
       },
     );
