@@ -34,10 +34,8 @@ class _HomeScreenState extends State<HomeScreen> {
                     letterSpacing: -0.5
                 )
             ),
-            // ✅ FIT 부분 가시성 개선
             Stack(
               children: [
-                // 1. 글자 뒤에 아주 얇은 외곽선 효과를 주어 경계를 명확히 함
                 Text(
                   "-FIT",
                   style: TextStyle(
@@ -47,14 +45,13 @@ class _HomeScreenState extends State<HomeScreen> {
                     foreground: Paint()
                       ..style = PaintingStyle.stroke
                       ..strokeWidth = 1.2
-                      ..color = Colors.black.withOpacity(0.1), // 미세한 테두리
+                      ..color = Colors.black.withOpacity(0.1),
                   ),
                 ),
-                // 2. 메인 글자색 (기존보다 약간 더 진한 라임색으로 조정)
                 Text(
                   "-FIT",
                   style: TextStyle(
-                    color: const Color(0xFFB3EB00), // 가시성을 위해 채도를 약간 높인 라임
+                    color: const Color(0xFFB3EB00),
                     fontWeight: FontWeight.w900,
                     fontSize: 22.sp,
                     letterSpacing: -0.5,
@@ -65,10 +62,7 @@ class _HomeScreenState extends State<HomeScreen> {
           ],
         ),
         actions: [
-          IconButton(
-              icon: Icon(Icons.notifications_none, color: Colors.black, size: 26.sp),
-              onPressed: () {}
-          ),
+          // ✅ 알람 아이콘 삭제됨
           IconButton(
               icon: Icon(Icons.search, color: Colors.black, size: 26.sp),
               onPressed: () => Navigator.push(

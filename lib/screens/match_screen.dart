@@ -1,10 +1,14 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_screenutil/flutter_screenutil.dart';
 import '../main.dart';
 import '../services/swap_service.dart';
 import 'chat_screen.dart';
 
 class MatchScreen extends StatelessWidget {
   const MatchScreen({super.key});
+
+  // ✅ 앱 공통 포인트 컬러
+  final Color _pointColor = const Color(0xFFB3EB00);
 
   @override
   Widget build(BuildContext context) {
@@ -14,24 +18,28 @@ class MatchScreen extends StatelessWidget {
     return DefaultTabController(
       length: 2,
       child: Scaffold(
-        backgroundColor: Colors.black,
+        backgroundColor: Colors.white, // ✅ 화이트 배경
         appBar: AppBar(
-          backgroundColor: Colors.black,
+          backgroundColor: Colors.white,
+          elevation: 0,
           centerTitle: true,
           title: const Text(
             "ACTIVITY",
             style: TextStyle(
-              color: Color(0xFFE2FF00),
-              fontWeight: FontWeight.bold,
+              color: Colors.black,
+              fontWeight: FontWeight.w900,
               letterSpacing: 1.2,
             ),
           ),
-          bottom: const TabBar(
-            indicatorColor: Color(0xFFE2FF00),
-            labelColor: Color(0xFFE2FF00),
-            unselectedLabelColor: Colors.white54,
-            indicatorWeight: 3,
-            tabs: [
+          bottom: TabBar(
+            indicatorColor: Colors.black, // 인디케이터 블랙
+            labelColor: Colors.black,
+            unselectedLabelColor: Colors.black26,
+            labelStyle: const TextStyle(fontWeight: FontWeight.w900, fontSize: 15),
+            unselectedLabelStyle: const TextStyle(fontWeight: FontWeight.w600, fontSize: 15),
+            indicatorWeight: 4,
+            indicatorPadding: const EdgeInsets.symmetric(horizontal: 20),
+            tabs: const [
               Tab(text: "채팅방"),
               Tab(text: "내 활동"),
             ],
@@ -39,9 +47,7 @@ class MatchScreen extends StatelessWidget {
         ),
         body: TabBarView(
           children: [
-            // 탭 1: 수락된 채팅 목록
             _buildChatList(uid),
-            // 탭 2: 통합된 요청 목록 (받은 것 + 보낸 것)
             _buildCombinedRequestList(uid, service),
           ],
         ),
@@ -49,52 +55,59 @@ class MatchScreen extends StatelessWidget {
     );
   }
 
-  // --- 탭 1: 채팅방 목록 (수정됨) ---
+  // --- 탭 1: 채팅방 목록 ---
   Widget _buildChatList(String uid) {
     return StreamBuilder<List<Map<String, dynamic>>>(
       stream: supabase.from('swaps').stream(primaryKey: ['id']),
       builder: (context, snapshot) {
         if (snapshot.connectionState == ConnectionState.waiting) {
-          return const Center(child: CircularProgressIndicator(color: Color(0xFFE2FF00)));
+          return Center(child: CircularProgressIndicator(color: _pointColor));
         }
 
         final all = snapshot.data ?? [];
-        // 🔥 필드명 수정: sender_id -> from_user_id, receiver_id -> to_user_id
         final accepted = all.where((c) =>
         (c['from_user_id'] == uid || c['to_user_id'] == uid) && c['status'] == 'accepted'
         ).toList();
 
         if (accepted.isEmpty) {
-          return const Center(child: Text("진행 중인 채팅이 없습니다.", style: TextStyle(color: Colors.white24)));
+          return const Center(child: Text("진행 중인 채팅이 없습니다.", style: TextStyle(color: Colors.black26, fontWeight: FontWeight.bold)));
         }
 
-        return ListView.builder(
+        return ListView.separated(
+          padding: const EdgeInsets.symmetric(vertical: 10),
           itemCount: accepted.length,
+          separatorBuilder: (context, index) => const Divider(height: 1, indent: 80, color: Colors.black12),
           itemBuilder: (context, index) {
             final chat = accepted[index];
             final isIRequested = chat['from_user_id'] == uid;
-            // 🔥 필드명 수정: receiver_clothes_id -> target_item_id 등
             final targetClothesId = isIRequested ? chat['target_item_id'] : chat['my_item_id'];
 
             return FutureBuilder<Map<String, dynamic>?>(
               future: supabase.from('clothes').select().eq('id', targetClothesId ?? '').maybeSingle(),
               builder: (context, snap) {
-                final brand = snap.data?['brand'] ?? "스왑 대화";
+                final brand = snap.data?['brand']?.toString().toUpperCase() ?? "SWAP CHAT";
                 final imageUrl = snap.data?['image_url'];
 
                 return ListTile(
+                  contentPadding: const EdgeInsets.symmetric(horizontal: 20, vertical: 8),
                   onTap: () => Navigator.push(
                       context,
                       MaterialPageRoute(builder: (_) => ChatScreen(swapId: chat['id']))
                   ),
-                  leading: CircleAvatar(
-                    backgroundImage: imageUrl != null ? NetworkImage(imageUrl) : null,
-                    backgroundColor: Colors.white10,
-                    child: imageUrl == null ? const Icon(Icons.person, color: Colors.white24) : null,
+                  leading: Container(
+                    width: 55.w,
+                    height: 55.w,
+                    decoration: BoxDecoration(
+                      borderRadius: BorderRadius.circular(15),
+                      color: const Color(0xFFF5F5F5),
+                      border: Border.all(color: Colors.black12),
+                      image: imageUrl != null ? DecorationImage(image: NetworkImage(imageUrl), fit: BoxFit.cover) : null,
+                    ),
+                    child: imageUrl == null ? const Icon(Icons.person, color: Colors.black12) : null,
                   ),
-                  title: Text(brand, style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
-                  subtitle: const Text("대화를 계속하려면 터치하세요", style: TextStyle(color: Colors.white54, fontSize: 12)),
-                  trailing: const Icon(Icons.chevron_right, color: Color(0xFFE2FF00)),
+                  title: Text(brand, style: const TextStyle(color: Colors.black, fontWeight: FontWeight.w900, fontSize: 16)),
+                  subtitle: const Text("대화를 계속하려면 터치하세요", style: TextStyle(color: Colors.black38, fontSize: 12)),
+                  trailing: const Icon(Icons.arrow_forward_ios_rounded, color: Colors.black, size: 16),
                 );
               },
             );
@@ -104,27 +117,26 @@ class MatchScreen extends StatelessWidget {
     );
   }
 
-  // --- 탭 2: 통합 스왑 현황 (수정됨) ---
+  // --- 탭 2: 통합 스왑 현황 ---
   Widget _buildCombinedRequestList(String uid, SwapService service) {
     return StreamBuilder<List<Map<String, dynamic>>>(
       stream: supabase.from('swaps').stream(primaryKey: ['id']),
       builder: (context, snapshot) {
         if (snapshot.connectionState == ConnectionState.waiting) {
-          return const Center(child: CircularProgressIndicator(color: Color(0xFFE2FF00)));
+          return Center(child: CircularProgressIndicator(color: _pointColor));
         }
 
         final all = snapshot.data ?? [];
-        // 🔥 필드명 수정: from_user_id, to_user_id
         final requests = all.where((c) =>
         (c['from_user_id'] == uid || c['to_user_id'] == uid) && c['status'] == 'pending'
         ).toList();
 
         if (requests.isEmpty) {
-          return const Center(child: Text("대기 중인 요청이 없습니다.", style: TextStyle(color: Colors.white24)));
+          return const Center(child: Text("대기 중인 요청이 없습니다.", style: TextStyle(color: Colors.black26, fontWeight: FontWeight.bold)));
         }
 
         return ListView.builder(
-          padding: const EdgeInsets.all(16),
+          padding: const EdgeInsets.all(20),
           itemCount: requests.length,
           itemBuilder: (context, index) => _requestCard(context, requests[index], service, uid),
         );
@@ -133,17 +145,20 @@ class MatchScreen extends StatelessWidget {
   }
 
   Widget _requestCard(BuildContext context, Map<String, dynamic> req, SwapService service, String uid) {
-    // 🔥 필드명 수정: receiver_id -> to_user_id
     final bool isReceived = req['to_user_id'] == uid;
 
     return Container(
-      margin: const EdgeInsets.only(bottom: 16),
-      padding: const EdgeInsets.all(16),
+      margin: const EdgeInsets.only(bottom: 20),
+      padding: const EdgeInsets.all(20),
       decoration: BoxDecoration(
-        color: const Color(0xFF1A1A1A),
-        borderRadius: BorderRadius.circular(20),
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(25),
+        boxShadow: [
+          BoxShadow(color: Colors.black.withOpacity(0.05), blurRadius: 15, offset: const Offset(0, 5))
+        ],
         border: Border.all(
-            color: isReceived ? const Color(0xFFE2FF00).withOpacity(0.3) : Colors.white10
+            color: isReceived ? _pointColor.withOpacity(0.5) : Colors.black12,
+            width: 1.5
         ),
       ),
       child: Column(
@@ -152,58 +167,78 @@ class MatchScreen extends StatelessWidget {
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
               Container(
-                padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
                 decoration: BoxDecoration(
-                  color: isReceived ? const Color(0xFFE2FF00) : Colors.white12,
-                  borderRadius: BorderRadius.circular(8),
+                  color: isReceived ? Colors.black : const Color(0xFFF5F5F5),
+                  borderRadius: BorderRadius.circular(10),
                 ),
                 child: Text(
                   isReceived ? "받은 제안" : "보낸 제안",
                   style: TextStyle(
-                      color: isReceived ? Colors.black : Colors.white,
-                      fontSize: 11,
-                      fontWeight: FontWeight.bold
+                      color: isReceived ? _pointColor : Colors.black,
+                      fontSize: 12,
+                      fontWeight: FontWeight.w900
                   ),
                 ),
               ),
-              const Text("대기 중", style: TextStyle(color: Colors.white38, fontSize: 12)),
+              const Text("대기 중", style: TextStyle(color: Colors.black26, fontSize: 13, fontWeight: FontWeight.bold)),
             ],
           ),
-          const SizedBox(height: 20),
+          const SizedBox(height: 24),
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceEvenly,
             children: [
-              // 🔥 필드명 수정: sender_clothes_id -> my_item_id / target_item_id에 맞게 매칭
-              _miniImg(isReceived ? req['my_item_id'] : req['my_item_id'], isReceived ? "상대의 옷" : "나의 옷"),
-              const Icon(Icons.swap_horiz, color: Color(0xFFE2FF00), size: 30),
-              _miniImg(isReceived ? req['target_item_id'] : req['target_item_id'], isReceived ? "나의 옷" : "상대의 옷"),
+              _miniImg(req['my_item_id'], isReceived ? "상대의 옷" : "나의 옷"),
+              Icon(Icons.swap_horiz_rounded, color: Colors.black, size: 32.sp),
+              _miniImg(req['target_item_id'], isReceived ? "나의 옷" : "상대의 옷"),
             ],
           ),
-          const SizedBox(height: 20),
+          const SizedBox(height: 24),
           if (isReceived)
             Row(
               children: [
                 Expanded(
-                  child: OutlinedButton(
+                  child: ElevatedButton(
                     onPressed: () => service.rejectRequest(req['id']),
-                    style: OutlinedButton.styleFrom(side: const BorderSide(color: Colors.redAccent)),
-                    child: const Text("거절", style: TextStyle(color: Colors.redAccent)),
+                    style: ElevatedButton.styleFrom(
+                        backgroundColor: const Color(0xFFF5F5F5),
+                        foregroundColor: Colors.black,
+                        elevation: 0,
+                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(15)),
+                        padding: const EdgeInsets.symmetric(vertical: 14)
+                    ),
+                    child: const Text("거절", style: TextStyle(fontWeight: FontWeight.w900)),
                   ),
                 ),
                 const SizedBox(width: 12),
                 Expanded(
                   child: ElevatedButton(
                     onPressed: () => service.acceptRequest(req['id']),
-                    style: ElevatedButton.styleFrom(backgroundColor: const Color(0xFFE2FF00)),
-                    child: const Text("수락", style: TextStyle(color: Colors.black, fontWeight: FontWeight.bold)),
+                    style: ElevatedButton.styleFrom(
+                        backgroundColor: Colors.black,
+                        foregroundColor: _pointColor,
+                        elevation: 0,
+                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(15)),
+                        padding: const EdgeInsets.symmetric(vertical: 14)
+                    ),
+                    child: const Text("수락", style: TextStyle(fontWeight: FontWeight.w900)),
                   ),
                 ),
               ],
             )
           else
-            const Text(
-              "상대방의 응답을 기다리고 있습니다",
-              style: TextStyle(color: Colors.white38, fontSize: 13, fontStyle: FontStyle.italic),
+            Container(
+              width: double.infinity,
+              padding: const EdgeInsets.symmetric(vertical: 12),
+              decoration: BoxDecoration(
+                  color: const Color(0xFFF5F5F5),
+                  borderRadius: BorderRadius.circular(12)
+              ),
+              child: const Text(
+                "상대방의 응답을 기다리고 있습니다",
+                textAlign: TextAlign.center,
+                style: TextStyle(color: Colors.black45, fontSize: 13, fontWeight: FontWeight.w600),
+              ),
             ),
         ],
       ),
@@ -219,16 +254,17 @@ class MatchScreen extends StatelessWidget {
         return Column(
           children: [
             Container(
-              width: 80, height: 80,
+              width: 85.w, height: 85.w,
               decoration: BoxDecoration(
-                borderRadius: BorderRadius.circular(12),
-                color: Colors.white10,
+                borderRadius: BorderRadius.circular(15),
+                color: const Color(0xFFF5F5F5),
+                border: Border.all(color: Colors.black12),
                 image: url != null ? DecorationImage(image: NetworkImage(url), fit: BoxFit.cover) : null,
               ),
-              child: url == null ? const Icon(Icons.image_not_supported, color: Colors.white10) : null,
+              child: url == null ? const Icon(Icons.image_not_supported, color: Colors.black12) : null,
             ),
-            const SizedBox(height: 8),
-            Text(label, style: const TextStyle(fontSize: 11, color: Colors.white54)),
+            const SizedBox(height: 10),
+            Text(label, style: const TextStyle(fontSize: 12, color: Colors.black54, fontWeight: FontWeight.bold)),
           ],
         );
       },

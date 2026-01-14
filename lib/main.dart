@@ -3,13 +3,15 @@ import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:curved_navigation_bar/curved_navigation_bar.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 
-import 'theme/app_theme.dart'; // 테마 임포트 추가
+import 'theme/app_theme.dart';
 import 'screens/community_screen.dart';
 import 'screens/home_screen.dart';
 import 'screens/match_screen.dart';
 import 'screens/swap_screen.dart';
 import 'screens/profile_screen.dart';
 import 'screens/login_screen.dart';
+import 'screens/splash_screen.dart';
+import 'screens/upload_screen.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -34,11 +36,9 @@ class MyApp extends StatelessWidget {
       builder: (context, child) {
         return MaterialApp(
           debugShowCheckedModeBanner: false,
-          theme: AppTheme.blackWhiteTheme, // ✅ 단일화된 블랙&화이트 테마 적용
+          theme: AppTheme.blackWhiteTheme,
           title: 'SWAP-FIT',
-          home: supabase.auth.currentSession == null
-              ? const LoginScreen()
-              : const MainNavigationScreen(),
+          home: const SplashScreen(),
         );
       },
     );
@@ -76,6 +76,35 @@ class MainNavigationScreenState extends State<MainNavigationScreen> {
       key: MainNavigationScreen.navKey,
       extendBody: true,
       body: _screens[currentTabIndex],
+
+      // ✅ 조건부 렌더링: 스왑 화면(index 2)이 아닐 때만 + 버튼 표시
+      floatingActionButton: currentTabIndex == 2
+          ? null
+          : Padding(
+        padding: const EdgeInsets.only(bottom: 75),
+        child: SizedBox(
+          width: 48.w,
+          height: 48.w,
+          child: FloatingActionButton(
+            onPressed: () {
+              Navigator.push(
+                context,
+                MaterialPageRoute(builder: (context) => const UploadScreen()),
+              );
+            },
+            backgroundColor: Colors.black,
+            shape: const CircleBorder(),
+            elevation: 3,
+            child: Icon(
+              Icons.add,
+              color: const Color(0xFFB3EB00),
+              size: 24.sp,
+            ),
+          ),
+        ),
+      ),
+      floatingActionButtonLocation: FloatingActionButtonLocation.endFloat,
+
       bottomNavigationBar: CurvedNavigationBar(
         index: currentTabIndex,
         height: 60.0,
@@ -99,13 +128,21 @@ class MainNavigationScreenState extends State<MainNavigationScreen> {
     return Column(
       mainAxisAlignment: MainAxisAlignment.center,
       children: [
-        Icon(icon, size: 24, color: isSelected ? Colors.white : Colors.grey),
+        Icon(
+            icon,
+            size: 24,
+            color: isSelected ? const Color(0xFFB3EB00) : Colors.white
+        ),
         if (!isSelected)
           Padding(
             padding: const EdgeInsets.only(top: 2),
             child: Text(
               label,
-              style: TextStyle(color: Colors.white, fontSize: 8.sp, fontWeight: FontWeight.bold),
+              style: TextStyle(
+                  color: Colors.white,
+                  fontSize: 8.sp,
+                  fontWeight: FontWeight.bold
+              ),
             ),
           ),
       ],

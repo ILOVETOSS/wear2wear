@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:flutter/foundation.dart';
+import 'package:flutter_screenutil/flutter_screenutil.dart'; // 추가됨
 import '../services/database_service.dart';
 
 class UploadScreen extends StatefulWidget {
@@ -19,15 +20,18 @@ class _UploadScreenState extends State<UploadScreen> with SingleTickerProviderSt
   Uint8List? _webImage;
   bool _isUploading = false;
 
-  // ✅ 새로운 상태 변수들
-  String _authStatus = '모름'; // 정품, 가품, 모름
-  String _tradeType = '둘다 가능'; // 판매만, 스왑만, 둘다 가능
-  bool _agreedToDisclaimer = false; // 법적 면책 동의
+  // ✅ 기존 기능 그대로 유지
+  String _authStatus = '모름';
+  String _tradeType = '둘다 가능';
+  bool _agreedToDisclaimer = false;
 
   final TextEditingController _brandController = TextEditingController();
   final TextEditingController _titleController = TextEditingController();
   final TextEditingController _ootdContentController = TextEditingController();
   String _selectedOotdCategory = '스트릿';
+
+  // ✅ 테마 컬러 변수
+  final Color _pointColor = const Color(0xFFB3EB00); // 네온 라임
 
   @override
   void initState() {
@@ -52,7 +56,6 @@ class _UploadScreenState extends State<UploadScreen> with SingleTickerProviderSt
       return;
     }
 
-    // ✅ 내 옷 등록일 경우 면책 동의 필수 체크
     if (_tabController.index == 0 && !_agreedToDisclaimer) {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(content: Text("법적 책임 면책 조항에 동의해야 등록이 가능합니다.")),
@@ -69,8 +72,8 @@ class _UploadScreenState extends State<UploadScreen> with SingleTickerProviderSt
         brand: _brandController.text,
         title: _titleController.text,
         extraData: {
-          'trade_type': _tradeType,    // 판매, 스왑, 둘다
-          'auth_status': _authStatus,  // 정품, 가품, 모름
+          'trade_type': _tradeType,
+          'auth_status': _authStatus,
           'disclaimer_agreed': _agreedToDisclaimer,
         },
       );
@@ -91,20 +94,29 @@ class _UploadScreenState extends State<UploadScreen> with SingleTickerProviderSt
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: Colors.black,
+      backgroundColor: Colors.white, // ✅ 배경 화이트로 변경
       appBar: AppBar(
-        backgroundColor: Colors.black,
-        title: const Text("UPLOAD", style: TextStyle(color: Color(0xFFE2FF00), fontWeight: FontWeight.bold)),
+        backgroundColor: Colors.white,
+        elevation: 0,
+        centerTitle: true,
+        leading: IconButton(
+          icon: const Icon(Icons.close, color: Colors.black),
+          onPressed: () => Navigator.pop(context),
+        ),
+        title: const Text("UPLOAD",
+            style: TextStyle(color: Colors.black, fontWeight: FontWeight.w900, fontSize: 18)),
         bottom: TabBar(
           controller: _tabController,
-          indicatorColor: const Color(0xFFE2FF00),
-          labelColor: const Color(0xFFE2FF00),
-          unselectedLabelColor: Colors.white38,
+          indicatorColor: Colors.black,
+          indicatorWeight: 3,
+          labelColor: Colors.black,
+          unselectedLabelColor: Colors.grey,
+          labelStyle: const TextStyle(fontWeight: FontWeight.bold, fontSize: 15),
           tabs: const [Tab(text: "내 옷 등록"), Tab(text: "OOTD 공유")],
         ),
       ),
       body: _isUploading
-          ? const Center(child: CircularProgressIndicator(color: Color(0xFFE2FF00)))
+          ? Center(child: CircularProgressIndicator(color: _pointColor))
           : TabBarView(
         controller: _tabController,
         children: [
@@ -112,16 +124,19 @@ class _UploadScreenState extends State<UploadScreen> with SingleTickerProviderSt
           _buildForm(false),
         ],
       ),
-      bottomNavigationBar: Padding(
-        padding: const EdgeInsets.all(20),
+      bottomNavigationBar: Container(
+        padding: EdgeInsets.fromLTRB(20.w, 10.h, 20.w, 30.h),
+        color: Colors.white,
         child: ElevatedButton(
           onPressed: _handleSave,
           style: ElevatedButton.styleFrom(
-              backgroundColor: const Color(0xFFE2FF00),
+              backgroundColor: Colors.black, // ✅ 버튼 블랙
+              foregroundColor: _pointColor,  // ✅ 글자 라임
               minimumSize: const Size(double.infinity, 60),
-              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(15))
+              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(15)),
+              elevation: 0
           ),
-          child: const Text("등록하기", style: TextStyle(color: Colors.black, fontWeight: FontWeight.bold, fontSize: 18)),
+          child: const Text("등록하기", style: TextStyle(fontWeight: FontWeight.bold, fontSize: 18)),
         ),
       ),
     );
@@ -143,22 +158,19 @@ class _UploadScreenState extends State<UploadScreen> with SingleTickerProviderSt
             _buildTextField(_titleController, "예: 조던 1 레트로"),
             const SizedBox(height: 30),
 
-            // ✅ 거래 방식 선택 (판매/스왑/둘다)
             _label("거래 방식"),
             _buildChoiceChips(['판매만', '스왑만', '둘다 가능'], _tradeType, (val) {
               setState(() => _tradeType = val);
             }),
             const SizedBox(height: 20),
 
-            // ✅ 정품 여부 선택 (정품/가품/모름)
             _label("정품 여부"),
             _buildChoiceChips(['정품', '가품', '모름'], _authStatus, (val) {
               setState(() => _authStatus = val);
             }),
             const SizedBox(height: 30),
 
-            // ✅ 법적 면책 조항 동의
-            const Divider(color: Colors.white24),
+            const Divider(color: Colors.black12),
             const SizedBox(height: 10),
             _buildDisclaimerTile(),
             const SizedBox(height: 20),
@@ -174,7 +186,6 @@ class _UploadScreenState extends State<UploadScreen> with SingleTickerProviderSt
     );
   }
 
-  // ✅ 선택 칩 위젯 (거래방식, 정품여부 공용)
   Widget _buildChoiceChips(List<String> options, String selectedValue, Function(String) onSelected) {
     return Wrap(
       spacing: 10,
@@ -184,10 +195,10 @@ class _UploadScreenState extends State<UploadScreen> with SingleTickerProviderSt
           label: Text(option),
           selected: isSelected,
           onSelected: (_) => onSelected(option),
-          selectedColor: const Color(0xFFE2FF00),
-          backgroundColor: const Color(0xFF1A1A1A),
+          selectedColor: Colors.black, // ✅ 선택시 블랙 배경
+          backgroundColor: const Color(0xFFF5F5F5), // ✅ 미선택시 연회색
           labelStyle: TextStyle(
-            color: isSelected ? Colors.black : Colors.white70,
+            color: isSelected ? _pointColor : Colors.black54, // ✅ 선택시 라임 글자
             fontWeight: FontWeight.bold,
           ),
           side: BorderSide.none,
@@ -197,27 +208,26 @@ class _UploadScreenState extends State<UploadScreen> with SingleTickerProviderSt
     );
   }
 
-  // ✅ 법적 면책 조항 타일
   Widget _buildDisclaimerTile() {
     return Container(
       padding: const EdgeInsets.all(12),
       decoration: BoxDecoration(
-        color: const Color(0xFF1A1A1A),
+        color: const Color(0xFFF5F5F5),
         borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: _agreedToDisclaimer ? const Color(0xFFE2FF00) : Colors.white10),
+        border: Border.all(color: _agreedToDisclaimer ? Colors.black : Colors.transparent),
       ),
       child: Row(
         children: [
           Checkbox(
             value: _agreedToDisclaimer,
-            activeColor: const Color(0xFFE2FF00),
-            checkColor: Colors.black,
+            activeColor: Colors.black,
+            checkColor: _pointColor,
             onChanged: (val) => setState(() => _agreedToDisclaimer = val!),
           ),
           const Expanded(
             child: Text(
               "본 제품이 가품일 경우 발생하는 모든 법적 책임은 등록자에게 있으며, SWAP-FIT은 어떠한 책임도 지지 않음에 동의합니다.",
-              style: TextStyle(color: Colors.white70, fontSize: 11, height: 1.4),
+              style: TextStyle(color: Colors.black54, fontSize: 11, height: 1.4),
             ),
           ),
         ],
@@ -229,22 +239,22 @@ class _UploadScreenState extends State<UploadScreen> with SingleTickerProviderSt
     return GestureDetector(
       onTap: _pickImage,
       child: Container(
-        height: 300,
+        height: 250,
         width: double.infinity,
         decoration: BoxDecoration(
-            color: const Color(0xFF1A1A1A),
+            color: const Color(0xFFF5F5F5),
             borderRadius: BorderRadius.circular(20),
-            border: Border.all(color: Colors.white10)
+            border: Border.all(color: Colors.black12)
         ),
         child: _webImage != null
             ? ClipRRect(borderRadius: BorderRadius.circular(20), child: Image.memory(_webImage!, fit: BoxFit.cover))
-            : const Center(
+            : Center(
             child: Column(
               mainAxisAlignment: MainAxisAlignment.center,
               children: [
-                Icon(Icons.add_a_photo_outlined, size: 50, color: Color(0xFFE2FF00)),
-                SizedBox(height: 10),
-                Text("사진 추가", style: TextStyle(color: Colors.white24)),
+                Icon(Icons.add_a_photo_outlined, size: 40, color: Colors.grey[400]),
+                const SizedBox(height: 10),
+                Text("제품 사진 추가", style: TextStyle(color: Colors.grey[400], fontWeight: FontWeight.bold)),
               ],
             )
         ),
@@ -253,19 +263,26 @@ class _UploadScreenState extends State<UploadScreen> with SingleTickerProviderSt
   }
 
   Widget _label(String text) => Padding(
-    padding: const EdgeInsets.only(bottom: 10),
-    child: Text(text, style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
+    padding: const EdgeInsets.only(left: 4, bottom: 10),
+    child: Text(text, style: const TextStyle(color: Colors.black, fontWeight: FontWeight.w900, fontSize: 15)),
   );
 
   Widget _buildTextField(TextEditingController controller, String hint, {int maxLines = 1}) {
-    return TextField(
-      controller: controller,
-      maxLines: maxLines,
-      style: const TextStyle(color: Colors.white),
-      decoration: InputDecoration(
-        hintText: hint, hintStyle: const TextStyle(color: Colors.white24),
-        filled: true, fillColor: const Color(0xFF1A1A1A),
-        border: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: BorderSide.none),
+    return Container(
+      decoration: BoxDecoration(
+        color: Colors.black, // ✅ 로그인 필드와 동일하게 블랙 배경
+        borderRadius: BorderRadius.circular(12),
+      ),
+      child: TextField(
+        controller: controller,
+        maxLines: maxLines,
+        style: const TextStyle(color: Colors.white), // ✅ 글자는 화이트
+        decoration: InputDecoration(
+          hintText: hint,
+          hintStyle: const TextStyle(color: Colors.white38, fontSize: 14),
+          contentPadding: const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
+          border: InputBorder.none,
+        ),
       ),
     );
   }
@@ -278,8 +295,14 @@ class _UploadScreenState extends State<UploadScreen> with SingleTickerProviderSt
         label: Text(c),
         selected: _selectedOotdCategory == c,
         onSelected: (v) => setState(() => _selectedOotdCategory = c),
-        selectedColor: const Color(0xFFE2FF00),
-        labelStyle: TextStyle(color: _selectedOotdCategory == c ? Colors.black : Colors.white),
+        selectedColor: Colors.black,
+        backgroundColor: const Color(0xFFF5F5F5),
+        labelStyle: TextStyle(
+          color: _selectedOotdCategory == c ? _pointColor : Colors.black54,
+          fontWeight: FontWeight.bold,
+        ),
+        side: BorderSide.none,
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
       )).toList(),
     );
   }

@@ -1,14 +1,14 @@
 import 'package:flutter/material.dart';
 import 'package:image_picker/image_picker.dart';
+import 'package:flutter_screenutil/flutter_screenutil.dart';
 import '../main.dart';
 import '../services/swap_service.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import 'upload_screen.dart';
-import 'dart:typed_data'; // 웹 이미지 처리를 위해 추가
 
 class ProfileScreen extends StatefulWidget {
-  final String? targetUid; // 👈 타인 프로필 조회를 위한 ID
-  final Map<String, dynamic>? editItem; // 👈 에러 해결을 위한 파라미터 정의
+  final String? targetUid;
+  final Map<String, dynamic>? editItem;
 
   const ProfileScreen({
     super.key,
@@ -22,22 +22,21 @@ class ProfileScreen extends StatefulWidget {
 
 class _ProfileScreenState extends State<ProfileScreen> {
   bool _isUploading = false;
-  late String _displayUid; // 실제 화면에 보여줄 유저의 ID
-  bool _isMe = false;      // 내 프로필인지 여부
+  late String _displayUid;
+  bool _isMe = false;
+
+  final Color _pointColor = const Color(0xFFB3EB00);
 
   @override
   void initState() {
     super.initState();
     final currentUser = supabase.auth.currentUser;
-    // targetUid가 있으면 타인 프로필, 없으면 내 프로필
     _displayUid = widget.targetUid ?? currentUser?.id ?? '';
     _isMe = _displayUid == currentUser?.id;
   }
 
-  // 📸 프로필 이미지 업데이트 (내 프로필일 때만 작동)
   Future<void> _updateProfileImage() async {
     if (!_isMe) return;
-
     final picker = ImagePicker();
     final XFile? image = await picker.pickImage(source: ImageSource.gallery, imageQuality: 50);
     if (image == null) return;
@@ -69,7 +68,6 @@ class _ProfileScreenState extends State<ProfileScreen> {
     }
   }
 
-  // 🔥 아이템 상세 정보 바텀 시트
   void _showItemDetailSheet(Map<String, dynamic> item) {
     final List<String> allImages = [];
     if (item['image_url'] != null) allImages.add(item['image_url'].toString());
@@ -87,16 +85,15 @@ class _ProfileScreenState extends State<ProfileScreen> {
         return StatefulBuilder(
           builder: (BuildContext context, StateSetter setModalState) {
             return Container(
-              height: MediaQuery.of(context).size.height * 0.9,
+              height: MediaQuery.of(context).size.height * 0.85,
               decoration: const BoxDecoration(
-                color: Color(0xFF121212),
+                color: Colors.white,
                 borderRadius: BorderRadius.vertical(top: Radius.circular(30)),
               ),
               child: Column(
                 children: [
-                  // --- 이미지 슬라이더 ---
                   SizedBox(
-                    height: 400,
+                    height: 400.h,
                     width: double.infinity,
                     child: Stack(
                       children: [
@@ -113,7 +110,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                         Positioned(
                           top: 20, right: 20,
                           child: IconButton(
-                            icon: const CircleAvatar(backgroundColor: Colors.black54, child: Icon(Icons.close, color: Colors.white)),
+                            icon: const CircleAvatar(backgroundColor: Colors.black, child: Icon(Icons.close, color: Colors.white, size: 20)),
                             onPressed: () => Navigator.pop(context),
                           ),
                         ),
@@ -127,7 +124,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                                 width: activeIndex == index ? 10 : 7, height: 7,
                                 decoration: BoxDecoration(
                                   shape: BoxShape.circle,
-                                  color: activeIndex == index ? const Color(0xFFE2FF00) : Colors.white24,
+                                  color: activeIndex == index ? Colors.black : Colors.black12,
                                 ),
                               )),
                             ),
@@ -135,18 +132,19 @@ class _ProfileScreenState extends State<ProfileScreen> {
                       ],
                     ),
                   ),
-                  // --- 상세 정보 ---
                   Expanded(
                     child: SingleChildScrollView(
                       padding: const EdgeInsets.all(24.0),
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
-                          Text(item['brand'] ?? 'BRAND', style: const TextStyle(color: Color(0xFFE2FF00), fontSize: 16, fontWeight: FontWeight.bold)),
+                          Text(item['brand']?.toUpperCase() ?? 'BRAND',
+                              style: TextStyle(color: Colors.black.withOpacity(0.4), fontSize: 14.sp, fontWeight: FontWeight.w900)),
                           const SizedBox(height: 8),
-                          Text(item['title'] ?? 'ITEM NAME', style: const TextStyle(color: Colors.white, fontSize: 24, fontWeight: FontWeight.bold)),
-                          const SizedBox(height: 20),
-                          const Divider(color: Colors.white12),
+                          Text(item['title'] ?? 'ITEM NAME',
+                              style: TextStyle(color: Colors.black, fontSize: 24.sp, fontWeight: FontWeight.w900)),
+                          const SizedBox(height: 25),
+                          const Divider(color: Colors.black12),
                           _buildDetailRow("상태", item['condition'] ?? "좋음"),
                           _buildDetailRow("사이즈", item['size'] ?? "FREE"),
                           _buildDetailRow("카테고리", item['category'] ?? "기타"),
@@ -154,57 +152,54 @@ class _ProfileScreenState extends State<ProfileScreen> {
                       ),
                     ),
                   ),
-                  // --- 버튼 영역 (본인일 때만 수정/삭제 노출) ---
-                  if (_isMe) Padding(
+                  Padding(
                     padding: const EdgeInsets.fromLTRB(20, 0, 20, 30),
-                    child: Row(
+                    child: _isMe ? Row(
                       children: [
                         Expanded(
-                          child: ElevatedButton.icon(
+                          child: ElevatedButton(
                             onPressed: () {
                               Navigator.pop(context);
                               Navigator.push(context, MaterialPageRoute(builder: (_) => UploadScreen(editItem: item)));
                             },
-                            icon: const Icon(Icons.edit, size: 18),
-                            label: const Text("수정하기"),
                             style: ElevatedButton.styleFrom(
-                              backgroundColor: const Color(0xFF1A1A1A),
-                              foregroundColor: Colors.white,
-                              padding: const EdgeInsets.symmetric(vertical: 18),
-                              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(15), side: const BorderSide(color: Colors.white12)),
+                              backgroundColor: Colors.black,
+                              foregroundColor: _pointColor,
+                              padding: const EdgeInsets.symmetric(vertical: 16),
+                              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(15)),
+                              elevation: 0,
                             ),
+                            child: const Text("수정하기", style: TextStyle(fontWeight: FontWeight.w900)),
                           ),
                         ),
                         const SizedBox(width: 12),
                         Expanded(
-                          child: ElevatedButton.icon(
+                          child: ElevatedButton(
                             onPressed: () {
                               Navigator.pop(context);
                               _confirmDelete(item);
                             },
-                            icon: const Icon(Icons.delete_outline, size: 18),
-                            label: const Text("삭제하기"),
                             style: ElevatedButton.styleFrom(
-                              backgroundColor: Colors.redAccent.withOpacity(0.1),
+                              backgroundColor: const Color(0xFFF5F5F5),
                               foregroundColor: Colors.redAccent,
-                              padding: const EdgeInsets.symmetric(vertical: 18),
+                              padding: const EdgeInsets.symmetric(vertical: 16),
                               shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(15)),
+                              elevation: 0,
                             ),
+                            child: const Text("삭제하기", style: TextStyle(fontWeight: FontWeight.w900)),
                           ),
                         ),
                       ],
-                    ),
-                  ) else Padding(
-                    padding: const EdgeInsets.fromLTRB(20, 0, 20, 30),
-                    child: ElevatedButton(
+                    ) : ElevatedButton(
                       onPressed: () { /* 교환 신청 로직 */ },
                       style: ElevatedButton.styleFrom(
-                        backgroundColor: const Color(0xFFE2FF00),
-                        foregroundColor: Colors.black,
+                        backgroundColor: Colors.black,
+                        foregroundColor: _pointColor,
                         minimumSize: const Size(double.infinity, 60),
                         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(15)),
+                        elevation: 0,
                       ),
-                      child: const Text("교환 신청하기", style: TextStyle(fontWeight: FontWeight.bold, fontSize: 18)),
+                      child: const Text("교환 신청하기", style: TextStyle(fontWeight: FontWeight.w900, fontSize: 18)),
                     ),
                   ),
                 ],
@@ -218,12 +213,12 @@ class _ProfileScreenState extends State<ProfileScreen> {
 
   Widget _buildDetailRow(String label, String value) {
     return Padding(
-      padding: const EdgeInsets.symmetric(vertical: 8),
+      padding: const EdgeInsets.symmetric(vertical: 12),
       child: Row(
         mainAxisAlignment: MainAxisAlignment.spaceBetween,
         children: [
-          Text(label, style: const TextStyle(color: Colors.white38, fontSize: 15)),
-          Text(value, style: const TextStyle(color: Colors.white, fontSize: 15, fontWeight: FontWeight.w500)),
+          Text(label, style: const TextStyle(color: Colors.black45, fontSize: 15, fontWeight: FontWeight.bold)),
+          Text(value, style: const TextStyle(color: Colors.black, fontSize: 15, fontWeight: FontWeight.w900)),
         ],
       ),
     );
@@ -233,16 +228,17 @@ class _ProfileScreenState extends State<ProfileScreen> {
     showDialog(
       context: context,
       builder: (context) => AlertDialog(
-        backgroundColor: const Color(0xFF1A1A1A),
-        title: const Text("삭제하시겠습니까?", style: TextStyle(color: Colors.white)),
+        backgroundColor: Colors.white,
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+        title: const Text("삭제할까요?", style: TextStyle(color: Colors.black, fontWeight: FontWeight.w900)),
         actions: [
-          TextButton(onPressed: () => Navigator.pop(context), child: const Text("취소", style: TextStyle(color: Colors.white54))),
+          TextButton(onPressed: () => Navigator.pop(context), child: const Text("취소", style: TextStyle(color: Colors.black38))),
           TextButton(
             onPressed: () async {
               await supabase.from('clothes').delete().eq('id', item['id']);
               if (mounted) { Navigator.pop(context); setState(() {}); }
             },
-            child: const Text("삭제", style: TextStyle(color: Colors.redAccent)),
+            child: const Text("삭제", style: TextStyle(color: Colors.redAccent, fontWeight: FontWeight.bold)),
           ),
         ],
       ),
@@ -251,27 +247,26 @@ class _ProfileScreenState extends State<ProfileScreen> {
 
   @override
   Widget build(BuildContext context) {
-    final SwapService swapService = SwapService();
-
     return Scaffold(
-      backgroundColor: Colors.black,
+      backgroundColor: Colors.white,
       appBar: AppBar(
-        title: Text(_isMe ? "MY-PROFILE" : "프로필", style: const TextStyle(color: Color(0xFFE2FF00), fontWeight: FontWeight.bold)),
-        backgroundColor: Colors.black,
-        iconTheme: const IconThemeData(color: Colors.white),
+        title: Text(_isMe ? "MY CLOSET" : "CLOSET",
+            style: const TextStyle(color: Colors.black, fontWeight: FontWeight.w900, fontSize: 18)),
+        backgroundColor: Colors.white,
         elevation: 0,
+        centerTitle: true,
+        iconTheme: const IconThemeData(color: Colors.black),
         actions: [
           if (_isMe) IconButton(
-              icon: const Icon(Icons.logout, color: Colors.white54),
+              icon: const Icon(Icons.logout_rounded, color: Colors.black45),
               onPressed: () async => await supabase.auth.signOut()
           ),
         ],
       ),
       body: Column(
         children: [
-          // --- 헤더: 프로필 이미지 및 정보 ---
           Padding(
-            padding: const EdgeInsets.all(20.0),
+            padding: const EdgeInsets.all(24.0),
             child: Row(
               children: [
                 GestureDetector(
@@ -280,48 +275,58 @@ class _ProfileScreenState extends State<ProfileScreen> {
                     stream: supabase.from('profiles').stream(primaryKey: ['id']).eq('id', _displayUid),
                     builder: (context, profileSnap) {
                       final avatarUrl = profileSnap.data?.isNotEmpty == true ? profileSnap.data!.first['avatar_url'] : null;
-                      return CircleAvatar(
-                        radius: 42,
-                        backgroundColor: const Color(0xFFE2FF00),
+                      return Container(
+                        padding: const EdgeInsets.all(2),
+                        decoration: BoxDecoration(shape: BoxShape.circle, border: Border.all(color: Colors.black, width: 2)),
                         child: CircleAvatar(
-                          radius: 40,
-                          backgroundColor: const Color(0xFF1A1A1A),
+                          radius: 38.w,
+                          backgroundColor: const Color(0xFFF5F5F5),
                           backgroundImage: avatarUrl != null ? NetworkImage(avatarUrl) : null,
-                          child: avatarUrl == null ? const Icon(Icons.person, color: Colors.white24, size: 40) : (_isUploading ? const CircularProgressIndicator() : null),
+                          child: avatarUrl == null ? const Icon(Icons.person, color: Colors.black12, size: 40) : null,
                         ),
                       );
                     },
                   ),
                 ),
                 const SizedBox(width: 20),
-                Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(_isMe ? (supabase.auth.currentUser?.email ?? "User") : "상대방 옷장", style: const TextStyle(color: Colors.white, fontSize: 18, fontWeight: FontWeight.bold)),
-                    const SizedBox(height: 6),
-                    StreamBuilder<List<Map<String, dynamic>>>(
-                      stream: supabase.from('clothes').stream(primaryKey: ['id']).eq('user_id', _displayUid),
-                      builder: (context, snap) => Text("옷장 ${snap.data?.length ?? 0}벌", style: const TextStyle(color: Color(0xFFE2FF00), fontSize: 14)),
-                    ),
-                  ],
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(_isMe ? (supabase.auth.currentUser?.email?.split('@')[0] ?? "User") : "상대방의 옷장",
+                          style: TextStyle(color: Colors.black, fontSize: 20.sp, fontWeight: FontWeight.w900)),
+                      const SizedBox(height: 6),
+                      StreamBuilder<List<Map<String, dynamic>>>(
+                        stream: supabase.from('clothes').stream(primaryKey: ['id']).eq('user_id', _displayUid),
+                        builder: (context, snap) => Container(
+                          padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                          decoration: BoxDecoration(color: Colors.black, borderRadius: BorderRadius.circular(20)),
+                          child: Text("TOTAL ${snap.data?.length ?? 0} ITEMS",
+                              style: TextStyle(color: _pointColor, fontSize: 10.sp, fontWeight: FontWeight.w900)),
+                        ),
+                      ),
+                    ],
+                  ),
                 ),
               ],
             ),
           ),
-          const Divider(color: Colors.white12, height: 1),
-          // --- 옷장 그리드 ---
+          const Divider(color: Colors.black12, height: 1),
           Expanded(
             child: StreamBuilder<List<Map<String, dynamic>>>(
               stream: supabase.from('clothes').stream(primaryKey: ['id']).eq('user_id', _displayUid),
               builder: (context, snapshot) {
-                if (snapshot.connectionState == ConnectionState.waiting) return const Center(child: CircularProgressIndicator(color: Color(0xFFE2FF00)));
+                if (snapshot.connectionState == ConnectionState.waiting) return Center(child: CircularProgressIndicator(color: _pointColor));
                 final items = snapshot.data ?? [];
-                if (items.isEmpty) return const Center(child: Text("등록된 옷이 없습니다.", style: TextStyle(color: Colors.white24)));
+                if (items.isEmpty) return const Center(child: Text("등록된 옷이 없습니다.", style: TextStyle(color: Colors.black26)));
 
                 return GridView.builder(
                   padding: const EdgeInsets.all(16),
-                  gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-                    crossAxisCount: 2, mainAxisSpacing: 16, crossAxisSpacing: 16, childAspectRatio: 0.75,
+                  gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
+                    crossAxisCount: 2,
+                    mainAxisSpacing: 15.h,
+                    crossAxisSpacing: 15.w,
+                    childAspectRatio: 0.78, // 이미지 가시성을 높이기 위해 비율 조정
                   ),
                   itemCount: items.length,
                   itemBuilder: (context, index) => _buildClosetItem(items[index]),
@@ -337,32 +342,50 @@ class _ProfileScreenState extends State<ProfileScreen> {
   Widget _buildClosetItem(Map<String, dynamic> item) {
     return GestureDetector(
       onTap: () => _showItemDetailSheet(item),
-      child: Container(
-        decoration: BoxDecoration(color: const Color(0xFF1A1A1A), borderRadius: BorderRadius.circular(20)),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Expanded(
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Expanded(
+            child: Container(
+              decoration: BoxDecoration(
+                color: const Color(0xFFF8F8F8),
+                borderRadius: BorderRadius.circular(12),
+                boxShadow: [
+                  BoxShadow(color: Colors.black.withOpacity(0.04), blurRadius: 10, offset: const Offset(0, 4))
+                ],
+              ),
               child: ClipRRect(
-                borderRadius: const BorderRadius.vertical(top: Radius.circular(20)),
-                child: Image.network(item['image_url'] ?? '', width: double.infinity, fit: BoxFit.cover,
-                  errorBuilder: (context, error, stackTrace) => const Center(child: Icon(Icons.broken_image, color: Colors.white24)),
+                borderRadius: BorderRadius.circular(12),
+                child: Image.network(
+                  item['image_url'] ?? '',
+                  width: double.infinity,
+                  height: double.infinity,
+                  fit: BoxFit.cover,
+                  errorBuilder: (context, e, s) => const Center(child: Icon(Icons.broken_image, color: Colors.black12)),
                 ),
               ),
             ),
-            Padding(
-              padding: const EdgeInsets.all(12),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(item['brand'] ?? 'BRAND', style: const TextStyle(color: Color(0xFFE2FF00), fontSize: 11, fontWeight: FontWeight.bold)),
-                  const SizedBox(height: 4),
-                  Text(item['title'] ?? 'ITEM', style: const TextStyle(color: Colors.white, fontSize: 14), maxLines: 1, overflow: TextOverflow.ellipsis),
-                ],
-              ),
+          ),
+          Padding(
+            padding: const EdgeInsets.fromLTRB(4, 10, 4, 0),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                    item['brand']?.toUpperCase() ?? 'BRAND',
+                    style: TextStyle(color: Colors.black, fontSize: 11.sp, fontWeight: FontWeight.w900, letterSpacing: 0.5)
+                ),
+                const SizedBox(height: 2),
+                Text(
+                    item['title'] ?? 'ITEM NAME',
+                    style: TextStyle(color: Colors.black45, fontSize: 13.sp, fontWeight: FontWeight.w500),
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis
+                ),
+              ],
             ),
-          ],
-        ),
+          ),
+        ],
       ),
     );
   }
