@@ -15,38 +15,17 @@ class _SignupScreenState extends State<SignupScreen> {
   final _nicknameController = TextEditingController();
   String _gender = "남성";
 
-  final Color _pointColor = const Color(0xFFB3EB00);
-
-  void _showSuccessDialog() {
-    showDialog(
-      context: context,
-      barrierDismissible: false,
-      builder: (context) => AlertDialog(
-        backgroundColor: Colors.white,
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(15)),
-        title: const Text("가입 성공", style: TextStyle(color: Colors.black, fontWeight: FontWeight.bold)),
-        content: const Text("가입이 완료되었습니다!\n확인을 누르면 로그인 화면으로 이동합니다.", style: TextStyle(color: Colors.black87)),
-        actions: [
-          TextButton(
-            onPressed: () {
-              Navigator.pop(context);
-              Navigator.pop(context);
-            },
-            child: Text("확인", style: TextStyle(color: _pointColor, fontWeight: FontWeight.bold)),
-          ),
-        ],
-      ),
-    );
-  }
-
   @override
   Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final pointColor = Colors.white;
+
     return Scaffold(
-      backgroundColor: Colors.white,
+      backgroundColor: Colors.black,
       appBar: AppBar(
-        backgroundColor: Colors.white,
+        backgroundColor: Colors.black,
         elevation: 0,
-        iconTheme: const IconThemeData(color: Colors.black),
+        iconTheme: const IconThemeData(color: Colors.white),
       ),
       body: SingleChildScrollView(
         padding: const EdgeInsets.symmetric(horizontal: 32.0, vertical: 20),
@@ -55,7 +34,7 @@ class _SignupScreenState extends State<SignupScreen> {
             const Text(
                 "SIGN UP",
                 style: TextStyle(
-                  color: Colors.black,
+                  color: Colors.white,
                   fontSize: 35,
                   fontWeight: FontWeight.w900,
                   letterSpacing: -1.0,
@@ -70,13 +49,12 @@ class _SignupScreenState extends State<SignupScreen> {
 
             const SizedBox(height: 30),
 
-            // ✅ 성별 선택 탭 (가시성 개선 버전)
             Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 const Padding(
                   padding: EdgeInsets.only(left: 4, bottom: 10),
-                  child: Text("성별", style: TextStyle(color: Colors.black, fontWeight: FontWeight.bold, fontSize: 14)),
+                  child: Text("성별", style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 14)),
                 ),
                 Row(
                   children: [
@@ -111,8 +89,8 @@ class _SignupScreenState extends State<SignupScreen> {
                 }
               },
               style: ElevatedButton.styleFrom(
-                backgroundColor: Colors.black,
-                foregroundColor: _pointColor,
+                backgroundColor: Colors.white,
+                foregroundColor: Colors.black,
                 minimumSize: const Size(double.infinity, 56),
                 shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
                 elevation: 0,
@@ -125,12 +103,34 @@ class _SignupScreenState extends State<SignupScreen> {
     );
   }
 
+  void _showSuccessDialog() {
+    showDialog(
+      context: context,
+      barrierDismissible: false,
+      builder: (context) => AlertDialog(
+        backgroundColor: const Color(0xFF1A1A1A),
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(15)),
+        title: const Text("가입 성공", style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
+        content: const Text("가입이 완료되었습니다!\n확인을 누르면 로그인 화면으로 이동합니다.", style: TextStyle(color: Colors.white70)),
+        actions: [
+          TextButton(
+            onPressed: () {
+              Navigator.pop(context);
+              Navigator.pop(context);
+            },
+            child: const Text("확인", style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
+          ),
+        ],
+      ),
+    );
+  }
+
   Widget _buildInput(TextEditingController controller, String label, {bool obscure = false}) {
     return Padding(
       padding: const EdgeInsets.symmetric(vertical: 8),
       child: Container(
         decoration: BoxDecoration(
-          color: Colors.black,
+          color: const Color(0xFF1A1A1A),
           borderRadius: BorderRadius.circular(12),
         ),
         child: TextField(
@@ -144,7 +144,7 @@ class _SignupScreenState extends State<SignupScreen> {
             border: InputBorder.none,
             focusedBorder: OutlineInputBorder(
               borderRadius: BorderRadius.circular(12),
-              borderSide: BorderSide(color: _pointColor, width: 1.5),
+              borderSide: const BorderSide(color: Colors.white, width: 1.5),
             ),
           ),
         ),
@@ -152,7 +152,6 @@ class _SignupScreenState extends State<SignupScreen> {
     );
   }
 
-  // ✅ 새로운 성별 선택 탭 버튼 위젯
   Widget _genderTabButton(String value) {
     bool isSelected = _gender == value;
     return GestureDetector(
@@ -161,11 +160,10 @@ class _SignupScreenState extends State<SignupScreen> {
         duration: const Duration(milliseconds: 200),
         height: 50,
         decoration: BoxDecoration(
-          // 선택 시 블랙, 미선택 시 연한 회색 배경
-          color: isSelected ? Colors.black : Colors.grey[100],
+          color: isSelected ? Colors.white : const Color(0xFF1A1A1A),
           borderRadius: BorderRadius.circular(12),
           border: Border.all(
-            color: isSelected ? _pointColor : Colors.transparent,
+            color: isSelected ? Colors.white : Colors.transparent,
             width: 1.5,
           ),
         ),
@@ -173,7 +171,7 @@ class _SignupScreenState extends State<SignupScreen> {
         child: Text(
           value,
           style: TextStyle(
-            color: isSelected ? _pointColor : Colors.grey[600],
+            color: isSelected ? Colors.black : Colors.white60,
             fontWeight: FontWeight.bold,
             fontSize: 16,
           ),

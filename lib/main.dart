@@ -77,7 +77,6 @@ class MainNavigationScreenState extends State<MainNavigationScreen> {
       extendBody: true,
       body: _screens[currentTabIndex],
 
-      // ✅ 조건부 렌더링: 스왑 화면(index 2)이 아닐 때만 + 버튼 표시
       floatingActionButton: currentTabIndex == 2
           ? null
           : Padding(
@@ -92,12 +91,12 @@ class MainNavigationScreenState extends State<MainNavigationScreen> {
                 MaterialPageRoute(builder: (context) => const UploadScreen()),
               );
             },
-            backgroundColor: Colors.black,
+            backgroundColor: Colors.white,
             shape: const CircleBorder(),
             elevation: 3,
             child: Icon(
               Icons.add,
-              color: const Color(0xFFB3EB00),
+              color: Colors.black,
               size: 24.sp,
             ),
           ),
@@ -131,7 +130,7 @@ class MainNavigationScreenState extends State<MainNavigationScreen> {
         Icon(
             icon,
             size: 24,
-            color: isSelected ? const Color(0xFFB3EB00) : Colors.white
+            color: isSelected ? Colors.white : Colors.white
         ),
         if (!isSelected)
           Padding(

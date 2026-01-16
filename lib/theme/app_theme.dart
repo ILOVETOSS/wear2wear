@@ -56,7 +56,7 @@ class AppTheme {
         elevation: 0,
       ),
 
-      // 카드 테마 (CardTheme -> CardThemeData로 수정하여 에러 해결)
+      // 카드 테마 (CardThemeData 사용)
       cardTheme: CardThemeData(
         color: grey,
         elevation: 0,

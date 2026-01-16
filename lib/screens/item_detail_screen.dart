@@ -22,7 +22,6 @@ class _ItemDetailScreenState extends State<ItemDetailScreen> {
     super.dispose();
   }
 
-  // ✅ 스왑 제안 전송 로직 (기존 유지)
   Future<void> _sendSwapProposal(Map<String, dynamic> myItem) async {
     try {
       await _supabase.from('swaps').insert({
@@ -33,11 +32,11 @@ class _ItemDetailScreenState extends State<ItemDetailScreen> {
         'status': 'pending',
       });
       if (mounted) {
-        Navigator.pop(context); // Picker 닫기
+        Navigator.pop(context);
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(
-            content: Text("🚀 스왑 제안을 보냈습니다!", style: TextStyle(color: Colors.black, fontWeight: FontWeight.bold)),
-            backgroundColor: const Color(0xFFB3EB00),
+            content: Text("🚀 스왑 제안을 보냈습니다!", style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
+            backgroundColor: Colors.black, // 스낵바 블랙으로 변경
           ),
         );
       }
@@ -53,7 +52,7 @@ class _ItemDetailScreenState extends State<ItemDetailScreen> {
   void _showMyClosetPicker() {
     showModalBottomSheet(
       context: context,
-      backgroundColor: const Color(0xFF1A1A1A),
+      backgroundColor: Colors.white, // 바텀시트 화이트로 변경
       shape: const RoundedRectangleBorder(borderRadius: BorderRadius.vertical(top: Radius.circular(25))),
       builder: (context) {
         return Container(
@@ -62,7 +61,7 @@ class _ItemDetailScreenState extends State<ItemDetailScreen> {
           child: Column(
             children: [
               const Text("제안할 내 옷 선택",
-                  style: TextStyle(color: Colors.white, fontSize: 18, fontWeight: FontWeight.bold)),
+                  style: TextStyle(color: Colors.black, fontSize: 18, fontWeight: FontWeight.bold)),
               SizedBox(height: 20.h),
               Expanded(
                 child: StreamBuilder<List<Map<String, dynamic>>>(
@@ -70,9 +69,9 @@ class _ItemDetailScreenState extends State<ItemDetailScreen> {
                       .stream(primaryKey: ['id'])
                       .eq('user_id', _supabase.auth.currentUser!.id),
                   builder: (context, snapshot) {
-                    if (!snapshot.hasData) return const Center(child: CircularProgressIndicator(color: Color(0xFFB3EB00)));
+                    if (!snapshot.hasData) return const Center(child: CircularProgressIndicator(color: Colors.black));
                     final myItems = snapshot.data!;
-                    if (myItems.isEmpty) return const Center(child: Text("내 옷장에 옷이 없습니다.", style: TextStyle(color: Colors.white54)));
+                    if (myItems.isEmpty) return const Center(child: Text("내 옷장에 옷이 없습니다.", style: TextStyle(color: Colors.black54)));
 
                     return GridView.builder(
                       gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
@@ -92,7 +91,7 @@ class _ItemDetailScreenState extends State<ItemDetailScreen> {
                               ),
                               SizedBox(height: 8.h),
                               Text(item['title'] ?? '',
-                                  style: const TextStyle(color: Colors.white, fontSize: 12), maxLines: 1, overflow: TextOverflow.ellipsis),
+                                  style: const TextStyle(color: Colors.black, fontSize: 12), maxLines: 1, overflow: TextOverflow.ellipsis),
                             ],
                           ),
                         );
@@ -110,8 +109,6 @@ class _ItemDetailScreenState extends State<ItemDetailScreen> {
 
   @override
   Widget build(BuildContext context) {
-    // ✅ 1. 업로드 시 저장한 image_urls 리스트 가져오기
-    // 데이터가 없거나 단일 URL인 경우를 대비해 예외처리
     final List<String> allImages = [];
     if (widget.item['image_urls'] != null) {
       allImages.addAll(List<String>.from(widget.item['image_urls']));
@@ -122,10 +119,9 @@ class _ItemDetailScreenState extends State<ItemDetailScreen> {
     final bool isMyItem = widget.item['user_id'] == _supabase.auth.currentUser?.id;
     final String authStatus = widget.item['auth_status'] ?? '모름';
     final String tradeType = widget.item['trade_type'] ?? '둘다 가능';
-    final Color pointColor = const Color(0xFFB3EB00); // 일관된 라임 컬러 적용
 
     return Scaffold(
-      backgroundColor: Colors.black,
+      backgroundColor: Colors.white, // 전체 배경 화이트
       extendBodyBehindAppBar: true,
       appBar: AppBar(
         backgroundColor: Colors.transparent,
@@ -133,9 +129,9 @@ class _ItemDetailScreenState extends State<ItemDetailScreen> {
         leading: Padding(
           padding: const EdgeInsets.all(8.0),
           child: CircleAvatar(
-            backgroundColor: Colors.black.withOpacity(0.4),
+            backgroundColor: Colors.white.withOpacity(0.8), // 뒤로가기 버튼 배경 화이트
             child: IconButton(
-              icon: const Icon(Icons.arrow_back_ios_new_rounded, color: Colors.white, size: 18),
+              icon: const Icon(Icons.arrow_back_ios_new_rounded, color: Colors.black, size: 18),
               onPressed: () => Navigator.pop(context),
             ),
           ),
@@ -145,7 +141,6 @@ class _ItemDetailScreenState extends State<ItemDetailScreen> {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            // 📸 상단 이미지 슬라이더 영역
             Stack(
               children: [
                 SizedBox(
@@ -159,44 +154,26 @@ class _ItemDetailScreenState extends State<ItemDetailScreen> {
                         allImages[index],
                         fit: BoxFit.cover,
                         width: double.infinity,
-                        // 이미지 로딩 실패 시 처리
                         errorBuilder: (context, error, stackTrace) => Container(
-                          color: Colors.grey[900],
-                          child: const Icon(Icons.image_not_supported, color: Colors.white24, size: 50),
+                          color: Colors.grey[200],
+                          child: const Icon(Icons.image_not_supported, color: Colors.black26, size: 50),
                         ),
                       );
                     },
                   ),
                 ),
-                // 그라데이션 오버레이 (텍스트 가독성)
-                Positioned.fill(
-                  child: Container(
-                    decoration: BoxDecoration(
-                      gradient: LinearGradient(
-                        begin: Alignment.topCenter,
-                        end: Alignment.bottomCenter,
-                        colors: [
-                          Colors.transparent,
-                          Colors.black.withOpacity(0.7),
-                        ],
-                        stops: const [0.7, 1.0],
-                      ),
-                    ),
-                  ),
-                ),
-                // 이미지 좌측 배지
+                // 이미지 배지 (블랙/그레이 조합)
                 Positioned(
                   bottom: 40,
                   left: 20,
                   child: Row(
                     children: [
-                      _buildBadge(authStatus, authStatus == '정품' ? pointColor : Colors.white),
+                      _buildBadge(authStatus, Colors.black), // 블랙 배지
                       const SizedBox(width: 8),
-                      _buildBadge(tradeType, Colors.white10, isBorder: true),
+                      _buildBadge(tradeType, Colors.black12, isBorder: true),
                     ],
                   ),
                 ),
-                // ✅ 이미지 페이지 인디케이터 (점)
                 if (allImages.length > 1)
                   Positioned(
                     bottom: 20, left: 0, right: 0,
@@ -208,28 +185,27 @@ class _ItemDetailScreenState extends State<ItemDetailScreen> {
                         width: _currentPage == index ? 20 : 8, height: 8,
                         decoration: BoxDecoration(
                           borderRadius: BorderRadius.circular(4),
-                          color: _currentPage == index ? pointColor : Colors.white.withOpacity(0.5),
+                          color: _currentPage == index ? Colors.black : Colors.black.withOpacity(0.2),
                         ),
                       )),
                     ),
                   ),
               ],
             ),
-
             Padding(
               padding: const EdgeInsets.all(24.0),
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   Text(widget.item['brand'] ?? 'Brand',
-                      style: TextStyle(color: pointColor, fontSize: 16, fontWeight: FontWeight.w900, letterSpacing: 1.2)),
+                      style: const TextStyle(color: Colors.black, fontSize: 16, fontWeight: FontWeight.w900, letterSpacing: 1.2)),
                   const SizedBox(height: 8),
                   Text(widget.item['title'] ?? 'Title',
-                      style: const TextStyle(color: Colors.white, fontSize: 26, fontWeight: FontWeight.bold)),
+                      style: const TextStyle(color: Colors.black, fontSize: 26, fontWeight: FontWeight.bold)),
                   const SizedBox(height: 30),
-                  const Divider(color: Colors.white10, thickness: 1),
+                  const Divider(color: Colors.black12, thickness: 1),
                   const SizedBox(height: 20),
-                  const Text("상품 상세 정보", style: TextStyle(color: Colors.white70, fontSize: 14, fontWeight: FontWeight.bold)),
+                  const Text("상품 상세 정보", style: TextStyle(color: Colors.black54, fontSize: 14, fontWeight: FontWeight.bold)),
                   const SizedBox(height: 20),
                   _buildInfoRow("정품 여부", authStatus),
                   _buildInfoRow("희망 거래", tradeType),
@@ -248,19 +224,19 @@ class _ItemDetailScreenState extends State<ItemDetailScreen> {
           : Container(
         padding: EdgeInsets.fromLTRB(20.w, 10.h, 20.w, 34.h),
         decoration: const BoxDecoration(
-          color: Colors.black,
-          border: Border(top: BorderSide(color: Colors.white10, width: 0.5)),
+          color: Colors.white,
+          border: Border(top: BorderSide(color: Colors.black12, width: 0.5)),
         ),
         child: ElevatedButton(
           onPressed: _showMyClosetPicker,
           style: ElevatedButton.styleFrom(
-            backgroundColor: pointColor,
+            backgroundColor: Colors.black, // 버튼 블랙으로 변경
             minimumSize: const Size(double.infinity, 60),
             shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
             elevation: 0,
           ),
           child: const Text("스왑 제안하기",
-              style: TextStyle(color: Colors.black, fontWeight: FontWeight.w900, fontSize: 18)),
+              style: TextStyle(color: Colors.white, fontWeight: FontWeight.w900, fontSize: 18)),
         ),
       ),
     );
@@ -270,14 +246,14 @@ class _ItemDetailScreenState extends State<ItemDetailScreen> {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
       decoration: BoxDecoration(
-        color: isBorder ? Colors.black.withOpacity(0.5) : color,
+        color: isBorder ? Colors.white.withOpacity(0.8) : color,
         borderRadius: BorderRadius.circular(8),
-        border: isBorder ? Border.all(color: Colors.white24) : null,
+        border: isBorder ? Border.all(color: Colors.black12) : null,
       ),
       child: Text(
         label,
         style: TextStyle(
-          color: isBorder ? Colors.white : Colors.black,
+          color: isBorder ? Colors.black : Colors.white,
           fontSize: 12,
           fontWeight: FontWeight.bold,
         ),
@@ -291,8 +267,8 @@ class _ItemDetailScreenState extends State<ItemDetailScreen> {
       child: Row(
         mainAxisAlignment: MainAxisAlignment.spaceBetween,
         children: [
-          Text(label, style: const TextStyle(color: Colors.white38, fontSize: 15)),
-          Text(value, style: const TextStyle(color: Colors.white, fontSize: 15, fontWeight: FontWeight.w600)),
+          Text(label, style: const TextStyle(color: Colors.black38, fontSize: 15)),
+          Text(value, style: const TextStyle(color: Colors.black, fontSize: 15, fontWeight: FontWeight.w600)),
         ],
       ),
     );

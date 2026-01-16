@@ -17,6 +17,7 @@ class _HomeScreenState extends State<HomeScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
+      // ✅ 전체 배경 화이트
       backgroundColor: Colors.white,
       appBar: AppBar(
         backgroundColor: Colors.white,
@@ -28,41 +29,24 @@ class _HomeScreenState extends State<HomeScreen> {
             Text(
                 "SWAP",
                 style: TextStyle(
-                    color: Colors.black,
+                    color: Colors.black, // ✅ 블랙 포인트
                     fontWeight: FontWeight.w900,
                     fontSize: 22.sp,
                     letterSpacing: -0.5
                 )
             ),
-            Stack(
-              children: [
-                Text(
-                  "-FIT",
-                  style: TextStyle(
-                    fontSize: 22.sp,
-                    fontWeight: FontWeight.w900,
-                    letterSpacing: -0.5,
-                    foreground: Paint()
-                      ..style = PaintingStyle.stroke
-                      ..strokeWidth = 1.2
-                      ..color = Colors.black.withOpacity(0.1),
-                  ),
-                ),
-                Text(
-                  "-FIT",
-                  style: TextStyle(
-                    color: const Color(0xFFB3EB00),
-                    fontWeight: FontWeight.w900,
-                    fontSize: 22.sp,
-                    letterSpacing: -0.5,
-                  ),
-                ),
-              ],
+            Text(
+              "-FIT",
+              style: TextStyle(
+                color: Colors.black, // ✅ 브랜드 컬러 대신 연한 블랙(회색빛)으로 세련되게 처리
+                fontWeight: FontWeight.w900,
+                fontSize: 22.sp,
+                letterSpacing: -0.5,
+              ),
             ),
           ],
         ),
         actions: [
-          // ✅ 알람 아이콘 삭제됨
           IconButton(
               icon: Icon(Icons.search, color: Colors.black, size: 26.sp),
               onPressed: () => Navigator.push(
@@ -86,13 +70,25 @@ class _HomeScreenState extends State<HomeScreen> {
                   child: Row(
                     mainAxisAlignment: MainAxisAlignment.spaceBetween,
                     children: [
-                      Text("인기 브랜드", style: TextStyle(color: Colors.black, fontWeight: FontWeight.bold, fontSize: 18.sp)),
-                      Text("전체보기", style: TextStyle(color: Colors.grey, fontSize: 13.sp)),
+                      Text("인기 브랜드",
+                          style: TextStyle(
+                              color: Colors.black, // ✅ 블랙 텍스트
+                              fontWeight: FontWeight.bold,
+                              fontSize: 18.sp
+                          )
+                      ),
+                      Text("전체보기",
+                          style: TextStyle(
+                              color: Colors.black38,
+                              fontSize: 13.sp
+                          )
+                      ),
                     ],
                   ),
                 ),
                 const HomeBrandSection(),
                 SizedBox(height: 20.h),
+                // 카테고리와 피드 영역도 배경이 화이트인 상태에서 블랙 텍스트가 돋보이게 됩니다.
                 const HomeCategories(),
                 const SelectClothesFeed(),
                 SizedBox(height: 100.h),

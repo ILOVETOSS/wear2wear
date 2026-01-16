@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
+import 'package:flutter_screenutil/flutter_screenutil.dart'; // screenutil 추가
 import 'profile_screen.dart';
 
 class CommunityScreen extends StatefulWidget {
@@ -23,7 +24,7 @@ class _CommunityScreenState extends State<CommunityScreen> {
         title: const Text("SWAP-FIT FEED",
             style: TextStyle(
                 color: Colors.black,
-                fontWeight: FontWeight.w900, // ✅ 에러 수정: w900 사용
+                fontWeight: FontWeight.w900,
                 letterSpacing: 0.5
             )),
       ),
@@ -37,6 +38,7 @@ class _CommunityScreenState extends State<CommunityScreen> {
     );
   }
 
+  // ✅ 카테고리 필터 수정 (형광색 제거 및 검흰 통일)
   Widget _buildCategoryFilter() {
     final topics = ["전체", "스트릿", "미니멀", "빈티지", "캐주얼"];
     return Container(
@@ -50,14 +52,18 @@ class _CommunityScreenState extends State<CommunityScreen> {
             label: Text(e),
             selected: _selectedCat == e,
             onSelected: (v) => setState(() => _selectedCat = e),
+            // ✅ 선택 시 검정 배경, 미선택 시 연한 회색 배경
             selectedColor: Colors.black,
             backgroundColor: const Color(0xFFF5F5F5),
             labelStyle: TextStyle(
-                color: _selectedCat == e ? const Color(0xFFE2FF00) : Colors.black54,
-                fontWeight: FontWeight.bold
+              // ✅ 선택 시 흰색 글자, 미선택 시 검정색 글자
+                color: _selectedCat == e ? Colors.white : Colors.black87,
+                fontWeight: FontWeight.bold,
+                fontSize: 13.sp
             ),
             shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
             side: BorderSide.none,
+            showCheckmark: false, // 체크마크 숨겨서 더 깔끔하게
           ),
         )).toList(),
       ),
@@ -95,9 +101,14 @@ class _CommunityScreenState extends State<CommunityScreen> {
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           ListTile(
-            leading: const CircleAvatar(backgroundColor: Color(0xFFF5F5F5), child: Icon(Icons.person, color: Colors.black26)),
-            title: Text(p['publisher_name'] ?? 'USER', style: const TextStyle(color: Colors.black, fontWeight: FontWeight.bold)),
-            subtitle: Text(p['category'], style: const TextStyle(color: Colors.grey, fontSize: 12)),
+            leading: const CircleAvatar(
+                backgroundColor: Color(0xFFF5F5F5),
+                child: Icon(Icons.person, color: Colors.black26)
+            ),
+            title: Text(p['publisher_name'] ?? 'USER',
+                style: const TextStyle(color: Colors.black, fontWeight: FontWeight.bold)),
+            subtitle: Text(p['category'],
+                style: const TextStyle(color: Colors.black45, fontSize: 12)), // 회색에서 진한 블랙계열로
             onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => ProfileScreen(targetUid: p['publisher_id']))),
           ),
           AspectRatio(
@@ -109,9 +120,12 @@ class _CommunityScreenState extends State<CommunityScreen> {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Text(p['content'] ?? "", style: const TextStyle(color: Colors.black, fontSize: 15, height: 1.4)),
+                Text(p['content'] ?? "",
+                    style: const TextStyle(color: Colors.black, fontSize: 15, height: 1.4)),
                 const SizedBox(height: 12),
-                const Text("교환 신청 가능", style: TextStyle(color: Colors.blueAccent, fontSize: 12, fontWeight: FontWeight.bold)),
+                // ✅ 포인트 컬러를 파란색에서 검정색으로 변경 (검흰 통일)
+                const Text("교환 신청 가능",
+                    style: TextStyle(color: Colors.black, fontSize: 12, fontWeight: FontWeight.bold)),
               ],
             ),
           ),
