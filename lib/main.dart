@@ -1,6 +1,5 @@
 import 'package:flutter/material.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
-import 'package:curved_navigation_bar/curved_navigation_bar.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 
 import 'theme/app_theme.dart';
@@ -74,16 +73,17 @@ class MainNavigationScreenState extends State<MainNavigationScreen> {
   Widget build(BuildContext context) {
     return Scaffold(
       key: MainNavigationScreen.navKey,
-      extendBody: true,
+      backgroundColor: Colors.white,
       body: _screens[currentTabIndex],
 
+      // ✅ FloatingActionButton 위치 및 디자인 수정
       floatingActionButton: currentTabIndex == 2
           ? null
           : Padding(
-        padding: const EdgeInsets.only(bottom: 75),
+        padding: EdgeInsets.only(bottom: 10.h),
         child: SizedBox(
-          width: 48.w,
-          height: 48.w,
+          width: 50.w,
+          height: 50.w,
           child: FloatingActionButton(
             onPressed: () {
               Navigator.push(
@@ -91,60 +91,61 @@ class MainNavigationScreenState extends State<MainNavigationScreen> {
                 MaterialPageRoute(builder: (context) => const UploadScreen()),
               );
             },
-            backgroundColor: Colors.white,
+            backgroundColor: Colors.black, // 버튼은 검은색으로 포인트
+            foregroundColor: Colors.white,
             shape: const CircleBorder(),
-            elevation: 3,
-            child: Icon(
-              Icons.add,
-              color: Colors.black,
-              size: 24.sp,
-            ),
+            elevation: 4,
+            child: Icon(Icons.add, size: 28.sp),
           ),
         ),
       ),
       floatingActionButtonLocation: FloatingActionButtonLocation.endFloat,
 
-      bottomNavigationBar: CurvedNavigationBar(
-        index: currentTabIndex,
-        height: 60.0,
-        items: [
-          _buildNavItem(Icons.home_filled, "HOME", 0),
-          _buildNavItem(Icons.dynamic_feed_rounded, "COMMUNITY", 1),
-          _buildNavItem(Icons.swap_horiz_rounded, "SWAP", 2),
-          _buildNavItem(Icons.chat_bubble_rounded, "CHAT", 3),
-          _buildNavItem(Icons.person_rounded, "MY", 4),
-        ],
-        color: Colors.black,
-        buttonBackgroundColor: Colors.black,
-        backgroundColor: Colors.transparent,
-        onTap: (index) => changeTab(index),
+      // ✅ 수정된 네비게이션 바 디자인
+      bottomNavigationBar: Container(
+        decoration: BoxDecoration(
+          color: Colors.white,
+          border: Border(
+            top: BorderSide(color: Colors.grey.shade200, width: 1.0), // 상단 구분선
+          ),
+        ),
+        child: BottomNavigationBar(
+          currentIndex: currentTabIndex,
+          onTap: changeTab,
+          type: BottomNavigationBarType.fixed, // 아이템 간격 고정
+          backgroundColor: Colors.white, // 배경 흰색
+          selectedItemColor: Colors.black, // 클릭 시 검은색
+          unselectedItemColor: Colors.grey.shade400, // 미클릭 시 회색
+          selectedFontSize: 10.sp,
+          unselectedFontSize: 10.sp,
+          showUnselectedLabels: true,
+          selectedLabelStyle: const TextStyle(fontWeight: FontWeight.bold),
+          unselectedLabelStyle: const TextStyle(fontWeight: FontWeight.bold),
+          elevation: 0, // Container Border를 사용하므로 기본 그림자 제거
+          items: [
+            _buildNavItem(Icons.home_outlined, Icons.home_filled, "HOME"),
+            _buildNavItem(Icons.article_outlined, Icons.article, "COMMUNITY"),
+            _buildNavItem(Icons.swap_horiz_rounded, Icons.swap_horiz_rounded, "SWAP"),
+            _buildNavItem(Icons.chat_bubble_outline_rounded, Icons.chat_bubble_rounded, "CHAT"),
+            _buildNavItem(Icons.person_outline_rounded, Icons.person_rounded, "MY"),
+          ],
+        ),
       ),
     );
   }
 
-  Widget _buildNavItem(IconData icon, String label, int index) {
-    bool isSelected = currentTabIndex == index;
-    return Column(
-      mainAxisAlignment: MainAxisAlignment.center,
-      children: [
-        Icon(
-            icon,
-            size: 24,
-            color: isSelected ? Colors.white : Colors.white
-        ),
-        if (!isSelected)
-          Padding(
-            padding: const EdgeInsets.only(top: 2),
-            child: Text(
-              label,
-              style: TextStyle(
-                  color: Colors.white,
-                  fontSize: 8.sp,
-                  fontWeight: FontWeight.bold
-              ),
-            ),
-          ),
-      ],
+  // ✅ 네비게이션 아이템 빌더 함수
+  BottomNavigationBarItem _buildNavItem(IconData icon, IconData activeIcon, String label) {
+    return BottomNavigationBarItem(
+      icon: Padding(
+        padding: EdgeInsets.symmetric(vertical: 5.h),
+        child: Icon(icon, size: 24.sp),
+      ),
+      activeIcon: Padding(
+        padding: EdgeInsets.symmetric(vertical: 5.h),
+        child: Icon(activeIcon, size: 24.sp),
+      ),
+      label: label,
     );
   }
 }

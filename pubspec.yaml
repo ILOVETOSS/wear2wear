@@ -10,11 +10,11 @@ dependencies:
   flutter:
     sdk: flutter
 
-  # 🔥 디자인 소스 필수 패키지 (정상 들여쓰기)
+  # 🔥 디자인 소스 필수 패키지
   flutter_screenutil: ^5.9.3
   carousel_slider: ^5.0.0
 
-  # UI 및 유틸리티 (기존 디자인 유지)
+  # UI 및 유틸리티
   cupertino_icons: ^1.0.6
   flutter_card_swiper: ^7.0.0
   image_picker: ^1.2.1
@@ -23,13 +23,17 @@ dependencies:
   appinio_swiper: ^2.1.1
   curved_navigation_bar: ^1.0.6
 
-  # 지도 및 위치 (기존 유지)
+  # 지도 및 위치
   google_maps_flutter: ^2.14.0
   geolocator: ^14.0.2
   geocoding: ^4.0.0
 
   # 🔥 Supabase 패키지 (핵심 서비스)
   supabase_flutter: ^2.6.0
+
+  # 🔥 새로 추가된 패키지
+  image_cropper: ^8.0.2              # 프로필 사진 크롭 기능
+  cached_network_image: ^3.4.1       # 이미지 캐싱 및 성능 최적화
 
 dev_dependencies:
   flutter_test:
@@ -40,3 +44,9 @@ flutter:
   uses-material-design: true
   assets:
     - assets/images/splash.jpg
+    # 🔥 브랜드 로고 에셋 추가 (home_brand_section.dart에서 사용)
+    - assets/images/nike.png
+    - assets/images/adidas.png
+    - assets/images/stussy.png
+    - assets/images/zara.png
+    - assets/images/chanel.png
