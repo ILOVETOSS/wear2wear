@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
+import '../services/wishlist_service.dart';
 
 class ItemDetailScreen extends StatefulWidget {
   final Map<String, dynamic> item;
@@ -14,12 +15,60 @@ class ItemDetailScreen extends StatefulWidget {
 class _ItemDetailScreenState extends State<ItemDetailScreen> {
   final PageController _pageController = PageController();
   final _supabase = Supabase.instance.client;
+  final WishlistService _wishlistService = WishlistService();
+
   int _currentPage = 0;
+  bool _isInWishlist = false;
+  bool _isLiked = false;
+  int _likesCount = 0;
+
+  @override
+  void initState() {
+    super.initState();
+    _loadItemStatus();
+  }
 
   @override
   void dispose() {
     _pageController.dispose();
     super.dispose();
+  }
+
+  // 위시리스트/좋아요 상태 로드
+  Future<void> _loadItemStatus() async {
+    final clothesId = widget.item['id'].toString();
+
+    final wishlist = await _wishlistService.checkWishlist(clothesId);
+    final liked = await _wishlistService.checkLike(clothesId);
+    final count = await _wishlistService.getLikesCount(clothesId);
+
+    if (mounted) {
+      setState(() {
+        _isInWishlist = wishlist;
+        _isLiked = liked;
+        _likesCount = count;
+      });
+    }
+  }
+
+  // 위시리스트 토글
+  Future<void> _toggleWishlist() async {
+    final success = await _wishlistService.toggleWishlist(widget.item['id'].toString());
+    if (success && mounted) {
+      setState(() => _isInWishlist = !_isInWishlist);
+      // SnackBar 제거됨 - 조용히 동작
+    }
+  }
+
+  // 좋아요 토글
+  Future<void> _toggleLike() async {
+    final success = await _wishlistService.toggleLike(widget.item['id'].toString());
+    if (success && mounted) {
+      setState(() {
+        _isLiked = !_isLiked;
+        _likesCount += _isLiked ? 1 : -1;
+      });
+    }
   }
 
   Future<void> _sendSwapProposal(Map<String, dynamic> myItem) async {
@@ -36,7 +85,7 @@ class _ItemDetailScreenState extends State<ItemDetailScreen> {
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(
             content: Text("🚀 스왑 제안을 보냈습니다!", style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
-            backgroundColor: Colors.black, // 스낵바 블랙으로 변경
+            backgroundColor: Colors.black,
           ),
         );
       }
@@ -52,7 +101,7 @@ class _ItemDetailScreenState extends State<ItemDetailScreen> {
   void _showMyClosetPicker() {
     showModalBottomSheet(
       context: context,
-      backgroundColor: Colors.white, // 바텀시트 화이트로 변경
+      backgroundColor: Colors.white,
       shape: const RoundedRectangleBorder(borderRadius: BorderRadius.vertical(top: Radius.circular(25))),
       builder: (context) {
         return Container(
@@ -121,7 +170,7 @@ class _ItemDetailScreenState extends State<ItemDetailScreen> {
     final String tradeType = widget.item['trade_type'] ?? '둘다 가능';
 
     return Scaffold(
-      backgroundColor: Colors.white, // 전체 배경 화이트
+      backgroundColor: Colors.white,
       extendBodyBehindAppBar: true,
       appBar: AppBar(
         backgroundColor: Colors.transparent,
@@ -129,13 +178,43 @@ class _ItemDetailScreenState extends State<ItemDetailScreen> {
         leading: Padding(
           padding: const EdgeInsets.all(8.0),
           child: CircleAvatar(
-            backgroundColor: Colors.white.withOpacity(0.8), // 뒤로가기 버튼 배경 화이트
+            backgroundColor: Colors.white.withOpacity(0.8),
             child: IconButton(
               icon: const Icon(Icons.arrow_back_ios_new_rounded, color: Colors.black, size: 18),
               onPressed: () => Navigator.pop(context),
             ),
           ),
         ),
+        actions: [
+          Padding(
+            padding: const EdgeInsets.all(8.0),
+            child: CircleAvatar(
+              backgroundColor: Colors.white.withOpacity(0.8),
+              child: IconButton(
+                icon: Icon(
+                  _isInWishlist ? Icons.bookmark : Icons.bookmark_border,
+                  color: _isInWishlist ? const Color(0xFFB3EB00) : Colors.black,
+                  size: 20,
+                ),
+                onPressed: _toggleWishlist,
+              ),
+            ),
+          ),
+          Padding(
+            padding: const EdgeInsets.only(right: 8.0, top: 8.0, bottom: 8.0),
+            child: CircleAvatar(
+              backgroundColor: Colors.white.withOpacity(0.8),
+              child: IconButton(
+                icon: Icon(
+                  _isLiked ? Icons.favorite : Icons.favorite_border,
+                  color: _isLiked ? Colors.red : Colors.black,
+                  size: 20,
+                ),
+                onPressed: _toggleLike,
+              ),
+            ),
+          ),
+        ],
       ),
       body: SingleChildScrollView(
         child: Column(
@@ -162,13 +241,12 @@ class _ItemDetailScreenState extends State<ItemDetailScreen> {
                     },
                   ),
                 ),
-                // 이미지 배지 (블랙/그레이 조합)
                 Positioned(
                   bottom: 40,
                   left: 20,
                   child: Row(
                     children: [
-                      _buildBadge(authStatus, Colors.black), // 블랙 배지
+                      _buildBadge(authStatus, Colors.black),
                       const SizedBox(width: 8),
                       _buildBadge(tradeType, Colors.black12, isBorder: true),
                     ],
@@ -197,6 +275,23 @@ class _ItemDetailScreenState extends State<ItemDetailScreen> {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
+                  // 좋아요 수 표시
+                  Row(
+                    children: [
+                      const Icon(Icons.favorite, color: Colors.red, size: 16),
+                      const SizedBox(width: 4),
+                      Text(
+                        '$_likesCount',
+                        style: const TextStyle(
+                          color: Colors.black54,
+                          fontSize: 14,
+                          fontWeight: FontWeight.bold,
+                        ),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 12),
+
                   Text(widget.item['brand'] ?? 'Brand',
                       style: const TextStyle(color: Colors.black, fontSize: 16, fontWeight: FontWeight.w900, letterSpacing: 1.2)),
                   const SizedBox(height: 8),
@@ -230,7 +325,7 @@ class _ItemDetailScreenState extends State<ItemDetailScreen> {
         child: ElevatedButton(
           onPressed: _showMyClosetPicker,
           style: ElevatedButton.styleFrom(
-            backgroundColor: Colors.black, // 버튼 블랙으로 변경
+            backgroundColor: Colors.black,
             minimumSize: const Size(double.infinity, 60),
             shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
             elevation: 0,
