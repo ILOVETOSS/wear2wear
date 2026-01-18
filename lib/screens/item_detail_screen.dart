@@ -34,7 +34,6 @@ class _ItemDetailScreenState extends State<ItemDetailScreen> {
     super.dispose();
   }
 
-  // 위시리스트/좋아요 상태 로드
   Future<void> _loadItemStatus() async {
     final clothesId = widget.item['id'].toString();
 
@@ -51,16 +50,13 @@ class _ItemDetailScreenState extends State<ItemDetailScreen> {
     }
   }
 
-  // 위시리스트 토글
   Future<void> _toggleWishlist() async {
     final success = await _wishlistService.toggleWishlist(widget.item['id'].toString());
     if (success && mounted) {
       setState(() => _isInWishlist = !_isInWishlist);
-      // SnackBar 제거됨 - 조용히 동작
     }
   }
 
-  // 좋아요 토글
   Future<void> _toggleLike() async {
     final success = await _wishlistService.toggleLike(widget.item['id'].toString());
     if (success && mounted) {
@@ -110,7 +106,7 @@ class _ItemDetailScreenState extends State<ItemDetailScreen> {
           child: Column(
             children: [
               const Text("제안할 내 옷 선택",
-                  style: TextStyle(color: Colors.black, fontSize: 18, fontWeight: FontWeight.bold)),
+                  style: TextStyle(color: Colors.black, fontSize: 18, fontWeight: FontWeight.w900)),
               SizedBox(height: 20.h),
               Expanded(
                 child: StreamBuilder<List<Map<String, dynamic>>>(
@@ -193,7 +189,7 @@ class _ItemDetailScreenState extends State<ItemDetailScreen> {
               child: IconButton(
                 icon: Icon(
                   _isInWishlist ? Icons.bookmark : Icons.bookmark_border,
-                  color: _isInWishlist ? const Color(0xFFB3EB00) : Colors.black,
+                  color: _isInWishlist ? Colors.black : Colors.black, // 🔥 네온색 제거, 항상 검정
                   size: 20,
                 ),
                 onPressed: _toggleWishlist,
@@ -275,7 +271,6 @@ class _ItemDetailScreenState extends State<ItemDetailScreen> {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  // 좋아요 수 표시
                   Row(
                     children: [
                       const Icon(Icons.favorite, color: Colors.red, size: 16),

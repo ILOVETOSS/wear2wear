@@ -18,9 +18,6 @@ class _ChatScreenState extends State<ChatScreen> {
   Map<String, dynamic>? senderItem;
   Map<String, dynamic>? receiverItem;
 
-  // ✅ 공통 포인트 컬러
-  final Color _pointColor = const Color(0xFFB3EB00);
-
   @override
   void initState() {
     super.initState();
@@ -37,7 +34,7 @@ class _ChatScreenState extends State<ChatScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: Colors.white, // ✅ 화이트 배경
+      backgroundColor: Colors.white,
       appBar: AppBar(
         title: const Text("CHAT",
             style: TextStyle(color: Colors.black, fontWeight: FontWeight.w900, fontSize: 18)),
@@ -47,7 +44,7 @@ class _ChatScreenState extends State<ChatScreen> {
         iconTheme: const IconThemeData(color: Colors.black),
         bottom: PreferredSize(
           preferredSize: const Size.fromHeight(1.0),
-          child: Container(color: Colors.black12, height: 1.0), // 상단 구분선
+          child: Container(color: Colors.black12, height: 1.0),
         ),
       ),
       body: Column(
@@ -57,7 +54,7 @@ class _ChatScreenState extends State<ChatScreen> {
             child: StreamBuilder<List<Map<String, dynamic>>>(
               stream: _chatService.getChatMessages(widget.swapId),
               builder: (context, snapshot) {
-                if (!snapshot.hasData) return Center(child: CircularProgressIndicator(color: _pointColor));
+                if (!snapshot.hasData) return const Center(child: CircularProgressIndicator(color: Colors.black));
                 final msgs = snapshot.data!;
                 return ListView.builder(
                   padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 20),
@@ -76,20 +73,21 @@ class _ChatScreenState extends State<ChatScreen> {
     );
   }
 
-  // ✅ 스왑 정보 배너 테마 수정
+  // ✅ 스왑 정보 배너 (미니멀 디자인)
   Widget _buildRequestBanner() {
     return Container(
       margin: const EdgeInsets.all(16),
-      padding: const EdgeInsets.all(16),
+      padding: const EdgeInsets.all(20),
       decoration: BoxDecoration(
-        color: const Color(0xFFF5F5F5), // 연회색 배경
+        color: const Color(0xFFF5F5F5),
         borderRadius: BorderRadius.circular(20),
+        border: Border.all(color: Colors.black.withOpacity(0.05)),
       ),
       child: Row(
         mainAxisAlignment: MainAxisAlignment.spaceEvenly,
         children: [
           _miniItem(senderItem, "상대"),
-          Icon(Icons.swap_horiz, color: Colors.black, size: 28.sp),
+          Icon(Icons.swap_horiz_rounded, color: Colors.black, size: 28.sp),
           _miniItem(receiverItem, "나"),
         ],
       ),
@@ -100,50 +98,63 @@ class _ChatScreenState extends State<ChatScreen> {
     return Column(
       children: [
         Container(
-            width: 55.w,
-            height: 55.w,
-            decoration: BoxDecoration(
-                borderRadius: BorderRadius.circular(12),
-                border: Border.all(color: Colors.black12),
-                image: item != null ? DecorationImage(image: NetworkImage(item['image_url']), fit: BoxFit.cover) : null,
-                color: Colors.white
-            )
+          width: 60.w,
+          height: 60.w,
+          decoration: BoxDecoration(
+              borderRadius: BorderRadius.circular(12),
+              border: Border.all(color: Colors.black12),
+              image: item != null
+                  ? DecorationImage(image: NetworkImage(item['image_url']), fit: BoxFit.cover)
+                  : null,
+              color: Colors.white
+          ),
+          child: item == null
+              ? const Icon(Icons.image_not_supported, color: Colors.black12, size: 30)
+              : null,
         ),
-        const SizedBox(height: 6),
-        Text(label, style: const TextStyle(fontSize: 11, color: Colors.black54, fontWeight: FontWeight.bold)),
+        const SizedBox(height: 8),
+        Text(label, style: const TextStyle(fontSize: 12, color: Colors.black54, fontWeight: FontWeight.bold)),
+        if (item != null)
+          Text(
+            item['brand']?.toString().toUpperCase() ?? '',
+            style: const TextStyle(fontSize: 10, color: Colors.black, fontWeight: FontWeight.w900),
+            maxLines: 1,
+          ),
       ],
     );
   }
 
-  // ✅ 채팅 버블 테마 수정
+  // ✅ 채팅 버블 (미니멀 디자인)
   Widget _buildChatBubble(String content, bool isMe) {
     return Align(
       alignment: isMe ? Alignment.centerRight : Alignment.centerLeft,
       child: Container(
         margin: const EdgeInsets.symmetric(vertical: 6),
         padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+        constraints: BoxConstraints(maxWidth: MediaQuery.of(context).size.width * 0.7),
         decoration: BoxDecoration(
-          color: isMe ? Colors.black : const Color(0xFFF5F5F5), // 내 메시지는 블랙, 상대는 연회색
+          color: isMe ? Colors.black : const Color(0xFFF5F5F5),
           borderRadius: BorderRadius.only(
             topLeft: const Radius.circular(18),
             topRight: const Radius.circular(18),
-            bottomLeft: Radius.circular(isMe ? 18 : 0),
-            bottomRight: Radius.circular(isMe ? 0 : 18),
+            bottomLeft: Radius.circular(isMe ? 18 : 4),
+            bottomRight: Radius.circular(isMe ? 4 : 18),
           ),
         ),
         child: Text(
-            content,
-            style: TextStyle(
-                color: isMe ? _pointColor : Colors.black, // 내 메시지 글자는 라임색
-                fontWeight: FontWeight.w600,
-                fontSize: 14.sp
-            )
+          content,
+          style: TextStyle(
+            color: isMe ? Colors.white : Colors.black,
+            fontWeight: FontWeight.w500,
+            fontSize: 14.sp,
+            height: 1.4,
+          ),
         ),
       ),
     );
   }
 
-  // ✅ 입력창 테마 수정 (로그인/업로드 화면과 통일)
+  // ✅ 입력창 (미니멀 디자인)
   Widget _buildInputField() {
     return Container(
       decoration: const BoxDecoration(
@@ -158,15 +169,16 @@ class _ChatScreenState extends State<ChatScreen> {
               Expanded(
                 child: Container(
                   decoration: BoxDecoration(
-                    color: Colors.black, // 블랙 입력창
+                    color: const Color(0xFFF5F5F5),
                     borderRadius: BorderRadius.circular(25),
+                    border: Border.all(color: Colors.black.withOpacity(0.05)),
                   ),
                   child: TextField(
                     controller: _msgController,
-                    style: const TextStyle(color: Colors.white),
+                    style: const TextStyle(color: Colors.black, fontSize: 14),
                     decoration: const InputDecoration(
                       hintText: "메시지를 입력하세요...",
-                      hintStyle: TextStyle(color: Colors.white38, fontSize: 14),
+                      hintStyle: TextStyle(color: Colors.black26, fontSize: 14),
                       border: InputBorder.none,
                       contentPadding: EdgeInsets.symmetric(horizontal: 20, vertical: 12),
                     ),
@@ -180,10 +192,14 @@ class _ChatScreenState extends State<ChatScreen> {
                   _chatService.sendMessage(widget.swapId, _msgController.text.trim());
                   _msgController.clear();
                 },
-                child: CircleAvatar(
-                    radius: 22,
-                    backgroundColor: Colors.black,
-                    child: Icon(Icons.send_rounded, color: _pointColor, size: 20) // 라임색 아이콘
+                child: Container(
+                  width: 44,
+                  height: 44,
+                  decoration: const BoxDecoration(
+                    color: Colors.black,
+                    shape: BoxShape.circle,
+                  ),
+                  child: const Icon(Icons.send_rounded, color: Colors.white, size: 20),
                 ),
               ),
             ],

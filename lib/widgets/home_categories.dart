@@ -10,7 +10,7 @@ class HomeCategories extends StatefulWidget {
 
 class _HomeCategoriesState extends State<HomeCategories> {
   int _selectedIndex = 0;
-  final List<String> _categories = ["🎯 추천", "🔥 인기", "🆕 방금 전", "📏 내 사이즈"];
+  final List<String> _categories = ["🎯 추천", "🔥 인기", "🆕 방금 전"];
 
   @override
   Widget build(BuildContext context) {

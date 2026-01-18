@@ -3,7 +3,9 @@ import 'package:flutter/material.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
+import 'package:supabase_flutter/supabase_flutter.dart';
 import '../services/database_service.dart';
+import '../main.dart';
 
 class UploadScreen extends StatefulWidget {
   final Map<String, dynamic>? editItem;
@@ -17,12 +19,11 @@ class _UploadScreenState extends State<UploadScreen> with SingleTickerProviderSt
   late TabController _tabController;
   final DatabaseService _dbService = DatabaseService();
 
-  // ✅ 사진 관리 리스트 (최대 10장)
   final List<XFile> _selectedImages = [];
   final List<Uint8List> _webImages = [];
+  final List<String> _existingImageUrls = []; // 🔥 기존 이미지 URL 저장
   bool _isUploading = false;
 
-  // 상태 관리 변수들
   String _authStatus = '모름';
   String _tradeType = '둘다 가능';
   bool _agreedToDisclaimer = false;
@@ -32,15 +33,45 @@ class _UploadScreenState extends State<UploadScreen> with SingleTickerProviderSt
   final TextEditingController _ootdContentController = TextEditingController();
   String _selectedOotdCategory = '스트릿';
 
+  // 🔥 수정 모드인지 확인
+  bool get isEditMode => widget.editItem != null;
+
   @override
   void initState() {
     super.initState();
     _tabController = TabController(length: 2, vsync: this);
+
+    // 🔥 수정 모드일 때 기존 데이터 불러오기
+    if (isEditMode) {
+      _loadExistingData();
+    }
   }
 
-  // ✅ 다중 이미지 선택 (최대 10장 제한)
+  // 🔥 기존 데이터 로드
+  void _loadExistingData() {
+    final item = widget.editItem!;
+
+    _brandController.text = item['brand'] ?? '';
+    _titleController.text = item['title'] ?? '';
+    _authStatus = item['auth_status'] ?? '모름';
+    _tradeType = item['trade_type'] ?? '둘다 가능';
+    _agreedToDisclaimer = item['disclaimer_agreed'] ?? false;
+
+    // 기존 이미지 URL 로드
+    if (item['image_urls'] != null && item['image_urls'] is List) {
+      _existingImageUrls.addAll(
+          List<String>.from(item['image_urls'].map((e) => e.toString()))
+      );
+    } else if (item['image_url'] != null) {
+      _existingImageUrls.add(item['image_url'].toString());
+    }
+
+    setState(() {});
+  }
+
   Future<void> _pickImages() async {
-    if (_selectedImages.length >= 10) {
+    final totalImages = _selectedImages.length + _existingImageUrls.length;
+    if (totalImages >= 10) {
       _showSnackBar("사진은 최대 10장까지 등록 가능합니다.");
       return;
     }
@@ -51,7 +82,8 @@ class _UploadScreenState extends State<UploadScreen> with SingleTickerProviderSt
 
     if (pickedFiles.isNotEmpty) {
       for (var file in pickedFiles) {
-        if (_selectedImages.length < 10) {
+        final currentTotal = _selectedImages.length + _existingImageUrls.length;
+        if (currentTotal < 10) {
           final bytes = await file.readAsBytes();
           setState(() {
             _selectedImages.add(file);
@@ -62,10 +94,17 @@ class _UploadScreenState extends State<UploadScreen> with SingleTickerProviderSt
     }
   }
 
-  void _removeImage(int index) {
+  void _removeNewImage(int index) {
     setState(() {
       _selectedImages.removeAt(index);
       _webImages.removeAt(index);
+    });
+  }
+
+  // 🔥 기존 이미지 제거
+  void _removeExistingImage(int index) {
+    setState(() {
+      _existingImageUrls.removeAt(index);
     });
   }
 
@@ -76,7 +115,8 @@ class _UploadScreenState extends State<UploadScreen> with SingleTickerProviderSt
   }
 
   Future<void> _handleSave() async {
-    if (_selectedImages.isEmpty) {
+    final totalImages = _selectedImages.length + _existingImageUrls.length;
+    if (totalImages == 0) {
       _showSnackBar("최소 1장의 이미지를 선택해주세요.");
       return;
     }
@@ -91,16 +131,22 @@ class _UploadScreenState extends State<UploadScreen> with SingleTickerProviderSt
     bool success = false;
 
     if (_tabController.index == 0) {
-      success = await _dbService.uploadClothingItem(
-        imageFiles: _selectedImages,
-        brand: _brandController.text,
-        title: _titleController.text,
-        extraData: {
-          'trade_type': _tradeType,
-          'auth_status': _authStatus,
-          'disclaimer_agreed': _agreedToDisclaimer,
-        },
-      );
+      if (isEditMode) {
+        // 🔥 수정 모드
+        success = await _updateClothingItem();
+      } else {
+        // 신규 등록
+        success = await _dbService.uploadClothingItem(
+          imageFiles: _selectedImages,
+          brand: _brandController.text,
+          title: _titleController.text,
+          extraData: {
+            'trade_type': _tradeType,
+            'auth_status': _authStatus,
+            'disclaimer_agreed': _agreedToDisclaimer,
+          },
+        );
+      }
     } else {
       success = await _dbService.uploadCommunityPost(
         imageFiles: _selectedImages,
@@ -112,10 +158,62 @@ class _UploadScreenState extends State<UploadScreen> with SingleTickerProviderSt
     if (mounted) {
       setState(() => _isUploading = false);
       if (success) {
-        Navigator.pop(context);
+        Navigator.pop(context, true); // 🔥 true를 반환하여 수정 완료 알림
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(
+                isEditMode ? "수정이 완료되었습니다!" : "등록이 완료되었습니다!",
+                style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold)
+            ),
+            backgroundColor: Colors.black,
+          ),
+        );
       } else {
-        _showSnackBar("등록 중 오류가 발생했습니다.");
+        _showSnackBar("${isEditMode ? '수정' : '등록'} 중 오류가 발생했습니다.");
       }
+    }
+  }
+
+  // 🔥 옷 수정 로직
+  Future<bool> _updateClothingItem() async {
+    try {
+      final user = supabase.auth.currentUser;
+      if (user == null) return false;
+
+      // 새로 업로드할 이미지들 처리
+      List<String> newUploadedUrls = [];
+      for (int i = 0; i < _selectedImages.length; i++) {
+        final String fileName = 'clothing/${user.id}/${DateTime.now().millisecondsSinceEpoch}_$i.jpg';
+        final Uint8List bytes = await _selectedImages[i].readAsBytes();
+
+        await supabase.storage.from('clothing-images').uploadBinary(
+          fileName,
+          bytes,
+          fileOptions: FileOptions(contentType: 'image/jpeg', upsert: true),
+        );
+
+        final String url = supabase.storage.from('clothing-images').getPublicUrl(fileName);
+        newUploadedUrls.add(url);
+      }
+
+      // 기존 이미지 + 새 이미지 합치기
+      final allImageUrls = [..._existingImageUrls, ...newUploadedUrls];
+
+      // DB 업데이트
+      await supabase.from('clothes').update({
+        'brand': _brandController.text,
+        'title': _titleController.text,
+        'image_url': allImageUrls.isNotEmpty ? allImageUrls[0] : null,
+        'image_urls': allImageUrls,
+        'trade_type': _tradeType,
+        'auth_status': _authStatus,
+        'disclaimer_agreed': _agreedToDisclaimer,
+      }).eq('id', widget.editItem!['id']);
+
+      return true;
+    } catch (e) {
+      debugPrint("❌ 수정 에러: $e");
+      return false;
     }
   }
 
@@ -131,9 +229,11 @@ class _UploadScreenState extends State<UploadScreen> with SingleTickerProviderSt
           icon: const Icon(Icons.arrow_back_ios_new, color: Colors.black, size: 20),
           onPressed: () => Navigator.pop(context),
         ),
-        title: Text("UPLOAD",
-            style: TextStyle(color: Colors.black, fontWeight: FontWeight.w900, fontSize: 18.sp)),
-        bottom: TabBar(
+        title: Text(
+            isEditMode ? "EDIT" : "UPLOAD",
+            style: TextStyle(color: Colors.black, fontWeight: FontWeight.w900, fontSize: 18.sp)
+        ),
+        bottom: isEditMode ? null : TabBar(
           controller: _tabController,
           indicatorColor: Colors.black,
           indicatorWeight: 2,
@@ -145,6 +245,8 @@ class _UploadScreenState extends State<UploadScreen> with SingleTickerProviderSt
       ),
       body: _isUploading
           ? const Center(child: CircularProgressIndicator(color: Colors.black))
+          : isEditMode
+          ? _buildForm(true)
           : TabBarView(
         controller: _tabController,
         children: [
@@ -163,7 +265,10 @@ class _UploadScreenState extends State<UploadScreen> with SingleTickerProviderSt
               minimumSize: Size(double.infinity, 60.h),
               shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
               elevation: 0),
-          child: Text("등록하기", style: TextStyle(fontWeight: FontWeight.bold, fontSize: 18.sp)),
+          child: Text(
+              isEditMode ? "수정 완료" : "등록하기",
+              style: TextStyle(fontWeight: FontWeight.bold, fontSize: 18.sp)
+          ),
         ),
       ),
     );
@@ -206,14 +311,17 @@ class _UploadScreenState extends State<UploadScreen> with SingleTickerProviderSt
     );
   }
 
-  // ✅ 다중 이미지 선택 UI (10장 대응)
+  // 🔥 기존 이미지 + 새 이미지 모두 표시
   Widget _buildMultiImagePicker() {
+    final totalCount = _existingImageUrls.length + _selectedImages.length;
+
     return SizedBox(
       height: 100.h,
       child: ListView.builder(
         scrollDirection: Axis.horizontal,
-        itemCount: _selectedImages.length + 1,
+        itemCount: totalCount + 1,
         itemBuilder: (context, index) {
+          // 첫 번째는 추가 버튼
           if (index == 0) {
             return GestureDetector(
               onTap: _pickImages,
@@ -230,7 +338,7 @@ class _UploadScreenState extends State<UploadScreen> with SingleTickerProviderSt
                   children: [
                     Icon(Icons.add, color: Colors.grey[400]),
                     SizedBox(height: 4.h),
-                    Text("${_selectedImages.length}/10",
+                    Text("$totalCount/10",
                         style: TextStyle(color: Colors.grey[400], fontSize: 11.sp)),
                   ],
                 ),
@@ -238,7 +346,44 @@ class _UploadScreenState extends State<UploadScreen> with SingleTickerProviderSt
             );
           }
 
-          int imgIndex = index - 1;
+          final actualIndex = index - 1;
+          final existingCount = _existingImageUrls.length;
+
+          // 기존 이미지 표시
+          if (actualIndex < existingCount) {
+            return Container(
+              width: 100.h,
+              margin: EdgeInsets.only(right: 12.w),
+              child: Stack(
+                children: [
+                  ClipRRect(
+                    borderRadius: BorderRadius.circular(4),
+                    child: Image.network(
+                      _existingImageUrls[actualIndex],
+                      fit: BoxFit.cover,
+                      width: 100.h,
+                      height: 100.h,
+                    ),
+                  ),
+                  Positioned(
+                    top: 4,
+                    right: 4,
+                    child: GestureDetector(
+                      onTap: () => _removeExistingImage(actualIndex),
+                      child: CircleAvatar(
+                        radius: 10,
+                        backgroundColor: Colors.black.withOpacity(0.5),
+                        child: const Icon(Icons.close, size: 12, color: Colors.white),
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            );
+          }
+
+          // 새로 추가한 이미지 표시
+          final newImageIndex = actualIndex - existingCount;
           return Container(
             width: 100.h,
             margin: EdgeInsets.only(right: 12.w),
@@ -246,14 +391,18 @@ class _UploadScreenState extends State<UploadScreen> with SingleTickerProviderSt
               children: [
                 ClipRRect(
                   borderRadius: BorderRadius.circular(4),
-                  child: Image.memory(_webImages[imgIndex],
-                      fit: BoxFit.cover, width: 100.h, height: 100.h),
+                  child: Image.memory(
+                      _webImages[newImageIndex],
+                      fit: BoxFit.cover,
+                      width: 100.h,
+                      height: 100.h
+                  ),
                 ),
                 Positioned(
                   top: 4,
                   right: 4,
                   child: GestureDetector(
-                    onTap: () => _removeImage(imgIndex),
+                    onTap: () => _removeNewImage(newImageIndex),
                     child: CircleAvatar(
                       radius: 10,
                       backgroundColor: Colors.black.withOpacity(0.5),
@@ -276,7 +425,6 @@ class _UploadScreenState extends State<UploadScreen> with SingleTickerProviderSt
             color: Colors.black, fontWeight: FontWeight.w900, fontSize: 14.sp)),
   );
 
-  // ✅ 하단 라인만 있는 미니멀 텍스트 필드
   Widget _buildMinimalField(TextEditingController controller, String label, String hint,
       {int maxLines = 1}) {
     return Column(
@@ -309,7 +457,6 @@ class _UploadScreenState extends State<UploadScreen> with SingleTickerProviderSt
     );
   }
 
-  // ✅ 사각형 박스 형태의 선택 UI
   Widget _buildMinimalBoxChips(
       List<String> options, String selectedValue, Function(String) onSelected) {
     return Wrap(

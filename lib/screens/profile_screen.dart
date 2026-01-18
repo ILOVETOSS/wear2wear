@@ -31,7 +31,6 @@ class _ProfileScreenState extends State<ProfileScreen> {
   bool _isMe = false;
 
   int _activeMenuIndex = 0;
-  final Color _pointColor = const Color(0xFFB3EB00);
 
   @override
   void initState() {
@@ -73,19 +72,14 @@ class _ProfileScreenState extends State<ProfileScreen> {
 
     try {
       final imageBytes = await croppedFile.readAsBytes();
-      final fileExt = croppedFile.path
-          .split('.')
-          .last;
+      final fileExt = croppedFile.path.split('.').last;
       final fileName = '$_displayUid.$fileExt';
 
       await supabase.storage.from('avatars').uploadBinary(
-          fileName, imageBytes, fileOptions: const FileOptions(upsert: true));
+          fileName, imageBytes, fileOptions: FileOptions(upsert: true));
 
-      final String publicUrl = supabase.storage.from('avatars').getPublicUrl(
-          fileName);
-      final String finalImageUrl = "$publicUrl?v=${DateTime
-          .now()
-          .millisecondsSinceEpoch}";
+      final String publicUrl = supabase.storage.from('avatars').getPublicUrl(fileName);
+      final String finalImageUrl = "$publicUrl?v=${DateTime.now().millisecondsSinceEpoch}";
 
       await supabase.from('profiles').upsert({
         'id': _displayUid,
@@ -109,8 +103,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
     final List<String> allImages = [];
     if (item['image_url'] != null) allImages.add(item['image_url'].toString());
     if (item['image_urls'] != null && item['image_urls'] is List) {
-      allImages.addAll(
-          List<String>.from(item['image_urls'].map((e) => e.toString())));
+      allImages.addAll(List<String>.from(item['image_urls'].map((e) => e.toString())));
     }
 
     int activeIndex = 0;
@@ -123,10 +116,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
         return StatefulBuilder(
           builder: (BuildContext context, StateSetter setModalState) {
             return Container(
-              height: MediaQuery
-                  .of(context)
-                  .size
-                  .height * 0.85,
+              height: MediaQuery.of(context).size.height * 0.85,
               decoration: const BoxDecoration(
                 color: Colors.white,
                 borderRadius: BorderRadius.vertical(top: Radius.circular(30)),
@@ -140,15 +130,11 @@ class _ProfileScreenState extends State<ProfileScreen> {
                       children: [
                         PageView.builder(
                           itemCount: allImages.length,
-                          onPageChanged: (index) =>
-                              setModalState(() => activeIndex = index),
+                          onPageChanged: (index) => setModalState(() => activeIndex = index),
                           itemBuilder: (context, index) {
                             return ClipRRect(
-                              borderRadius: const BorderRadius.vertical(
-                                  top: Radius.circular(30)),
-                              child: Image.network(
-                                  allImages[index], width: double.infinity,
-                                  fit: BoxFit.cover),
+                              borderRadius: const BorderRadius.vertical(top: Radius.circular(30)),
+                              child: Image.network(allImages[index], width: double.infinity, fit: BoxFit.cover),
                             );
                           },
                         ),
@@ -157,8 +143,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                           child: IconButton(
                             icon: const CircleAvatar(
                                 backgroundColor: Colors.black,
-                                child: Icon(Icons.close, color: Colors.white,
-                                    size: 20)),
+                                child: Icon(Icons.close, color: Colors.white, size: 20)),
                             onPressed: () => Navigator.pop(context),
                           ),
                         ),
@@ -167,20 +152,15 @@ class _ProfileScreenState extends State<ProfileScreen> {
                             bottom: 20, left: 0, right: 0,
                             child: Row(
                               mainAxisAlignment: MainAxisAlignment.center,
-                              children: List.generate(
-                                  allImages.length, (index) =>
-                                  Container(
-                                    margin: const EdgeInsets.symmetric(
-                                        horizontal: 4),
-                                    width: activeIndex == index ? 10 : 7,
-                                    height: 7,
-                                    decoration: BoxDecoration(
-                                      shape: BoxShape.circle,
-                                      color: activeIndex == index
-                                          ? Colors.black
-                                          : Colors.black12,
-                                    ),
-                                  )),
+                              children: List.generate(allImages.length, (index) => Container(
+                                margin: const EdgeInsets.symmetric(horizontal: 4),
+                                width: activeIndex == index ? 10 : 7,
+                                height: 7,
+                                decoration: BoxDecoration(
+                                  shape: BoxShape.circle,
+                                  color: activeIndex == index ? Colors.black : Colors.black12,
+                                ),
+                              )),
                             ),
                           ),
                       ],
@@ -193,15 +173,10 @@ class _ProfileScreenState extends State<ProfileScreen> {
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
                           Text(item['brand']?.toUpperCase() ?? 'BRAND',
-                              style: TextStyle(
-                                  color: Colors.black.withOpacity(0.4),
-                                  fontSize: 14.sp,
-                                  fontWeight: FontWeight.w900)),
+                              style: TextStyle(color: Colors.black.withOpacity(0.4), fontSize: 14.sp, fontWeight: FontWeight.w900)),
                           const SizedBox(height: 8),
                           Text(item['title'] ?? 'ITEM NAME',
-                              style: TextStyle(color: Colors.black,
-                                  fontSize: 24.sp,
-                                  fontWeight: FontWeight.w900)),
+                              style: TextStyle(color: Colors.black, fontSize: 24.sp, fontWeight: FontWeight.w900)),
                           const SizedBox(height: 25),
                           const Divider(color: Colors.black12),
                           _buildDetailRow("상태", item['condition'] ?? "좋음"),
@@ -217,21 +192,21 @@ class _ProfileScreenState extends State<ProfileScreen> {
                       children: [
                         Expanded(
                           child: ElevatedButton(
-                            onPressed: () {
+                            onPressed: () async {
                               Navigator.pop(context);
-                              Navigator.push(context, MaterialPageRoute(
-                                  builder: (_) =>
-                                      UploadScreen(editItem: item)));
+                              final result = await Navigator.push(context, MaterialPageRoute(
+                                  builder: (_) => UploadScreen(editItem: item)));
+                              if (result == true && mounted) {
+                                setState(() {});
+                              }
                             },
                             style: ElevatedButton.styleFrom(
                               backgroundColor: Colors.black,
-                              foregroundColor: _pointColor,
+                              foregroundColor: Colors.white, // 🔥 네온색 → 흰색으로 변경
                               padding: const EdgeInsets.symmetric(vertical: 16),
-                              shape: RoundedRectangleBorder(
-                                  borderRadius: BorderRadius.circular(15)),
+                              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(15)),
                             ),
-                            child: const Text("수정하기",
-                                style: TextStyle(fontWeight: FontWeight.w900)),
+                            child: const Text("수정하기", style: TextStyle(fontWeight: FontWeight.w900)),
                           ),
                         ),
                         const SizedBox(width: 12),
@@ -245,11 +220,9 @@ class _ProfileScreenState extends State<ProfileScreen> {
                               backgroundColor: const Color(0xFFF5F5F5),
                               foregroundColor: Colors.redAccent,
                               padding: const EdgeInsets.symmetric(vertical: 16),
-                              shape: RoundedRectangleBorder(
-                                  borderRadius: BorderRadius.circular(15)),
+                              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(15)),
                             ),
-                            child: const Text("삭제하기",
-                                style: TextStyle(fontWeight: FontWeight.w900)),
+                            child: const Text("삭제하기", style: TextStyle(fontWeight: FontWeight.w900)),
                           ),
                         ),
                       ],
@@ -257,13 +230,11 @@ class _ProfileScreenState extends State<ProfileScreen> {
                       onPressed: () {},
                       style: ElevatedButton.styleFrom(
                         backgroundColor: Colors.black,
-                        foregroundColor: _pointColor,
+                        foregroundColor: Colors.white, // 🔥 네온색 → 흰색으로 변경
                         minimumSize: const Size(double.infinity, 60),
-                        shape: RoundedRectangleBorder(borderRadius: BorderRadius
-                            .circular(15)),
+                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(15)),
                       ),
-                      child: const Text("교환 신청하기", style: TextStyle(
-                          fontWeight: FontWeight.w900, fontSize: 18)),
+                      child: const Text("교환 신청하기", style: TextStyle(fontWeight: FontWeight.w900, fontSize: 18)),
                     ),
                   ),
                 ],
@@ -281,11 +252,8 @@ class _ProfileScreenState extends State<ProfileScreen> {
       child: Row(
         mainAxisAlignment: MainAxisAlignment.spaceBetween,
         children: [
-          Text(label, style: const TextStyle(color: Colors.black45,
-              fontSize: 15,
-              fontWeight: FontWeight.bold)),
-          Text(value, style: const TextStyle(
-              color: Colors.black, fontSize: 15, fontWeight: FontWeight.w900)),
+          Text(label, style: const TextStyle(color: Colors.black45, fontSize: 15, fontWeight: FontWeight.bold)),
+          Text(value, style: const TextStyle(color: Colors.black, fontSize: 15, fontWeight: FontWeight.w900)),
         ],
       ),
     );
@@ -294,30 +262,25 @@ class _ProfileScreenState extends State<ProfileScreen> {
   void _confirmDelete(Map<String, dynamic> item) {
     showDialog(
       context: context,
-      builder: (context) =>
-          AlertDialog(
-            backgroundColor: Colors.white,
-            shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(20)),
-            title: const Text("삭제할까요?", style: TextStyle(
-                color: Colors.black, fontWeight: FontWeight.w900)),
-            actions: [
-              TextButton(onPressed: () => Navigator.pop(context),
-                  child: const Text(
-                      "취소", style: TextStyle(color: Colors.black38))),
-              TextButton(
-                onPressed: () async {
-                  await supabase.from('clothes').delete().eq('id', item['id']);
-                  if (mounted) {
-                    Navigator.pop(context);
-                    setState(() {});
-                  }
-                },
-                child: const Text("삭제", style: TextStyle(
-                    color: Colors.redAccent, fontWeight: FontWeight.bold)),
-              ),
-            ],
+      builder: (context) => AlertDialog(
+        backgroundColor: Colors.white,
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+        title: const Text("삭제할까요?", style: TextStyle(color: Colors.black, fontWeight: FontWeight.w900)),
+        actions: [
+          TextButton(onPressed: () => Navigator.pop(context),
+              child: const Text("취소", style: TextStyle(color: Colors.black38))),
+          TextButton(
+            onPressed: () async {
+              await supabase.from('clothes').delete().eq('id', item['id']);
+              if (mounted) {
+                Navigator.pop(context);
+                setState(() {});
+              }
+            },
+            child: const Text("삭제", style: TextStyle(color: Colors.redAccent, fontWeight: FontWeight.bold)),
           ),
+        ],
+      ),
     );
   }
 
@@ -326,9 +289,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
     return Scaffold(
       backgroundColor: Colors.white,
       appBar: AppBar(
-        title: Text(
-            _isMe ? "MY PAGE" : "CLOSET", style: const TextStyle(color: Colors
-            .black, fontWeight: FontWeight.w900, fontSize: 18)),
+        title: Text(_isMe ? "MY PAGE" : "CLOSET", style: const TextStyle(color: Colors.black, fontWeight: FontWeight.w900, fontSize: 18)),
         backgroundColor: Colors.white,
         elevation: 0,
         centerTitle: true,
@@ -360,34 +321,23 @@ class _ProfileScreenState extends State<ProfileScreen> {
           GestureDetector(
             onTap: _updateProfileImage,
             child: StreamBuilder<List<Map<String, dynamic>>>(
-              stream: supabase.from('profiles').stream(primaryKey: ['id']).eq(
-                  'id', _displayUid),
+              stream: supabase.from('profiles').stream(primaryKey: ['id']).eq('id', _displayUid),
               builder: (context, profileSnap) {
-                final avatarUrl = profileSnap.data?.isNotEmpty == true
-                    ? profileSnap.data!.first['avatar_url']
-                    : null;
+                final avatarUrl = profileSnap.data?.isNotEmpty == true ? profileSnap.data!.first['avatar_url'] : null;
                 return Stack(
                   children: [
                     CircleAvatar(
                       radius: 38.w,
                       backgroundColor: const Color(0xFFF5F5F5),
-                      backgroundImage: avatarUrl != null ? NetworkImage(
-                          avatarUrl) : null,
+                      backgroundImage: avatarUrl != null ? NetworkImage(avatarUrl) : null,
                       child: _isUploading
-                          ? const CircularProgressIndicator(
-                          color: Colors.black, strokeWidth: 2)
-                          : (avatarUrl == null
-                          ? Icon(
-                          Icons.person, color: Colors.black12, size: 40.w)
-                          : null),
+                          ? const CircularProgressIndicator(color: Colors.black, strokeWidth: 2)
+                          : (avatarUrl == null ? Icon(Icons.person, color: Colors.black12, size: 40.w) : null),
                     ),
                     if (_isMe)
-                      Positioned(bottom: 0,
-                          right: 0,
-                          child: CircleAvatar(radius: 12.w,
-                              backgroundColor: Colors.black,
-                              child: Icon(Icons.camera_alt, color: _pointColor,
-                                  size: 12.w))),
+                      Positioned(bottom: 0, right: 0,
+                          child: CircleAvatar(radius: 12.w, backgroundColor: Colors.black,
+                              child: Icon(Icons.camera_alt, color: Colors.white, size: 12.w))), // 🔥 네온색 → 흰색
                   ],
                 );
               },
@@ -398,28 +348,17 @@ class _ProfileScreenState extends State<ProfileScreen> {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Text(_isMe ? (supabase.auth.currentUser?.email?.split('@')[0] ??
-                    "User") : "상대방의 옷장",
-                    style: TextStyle(fontSize: 20.sp,
-                        fontWeight: FontWeight.w900,
-                        color: Colors.black)),
+                Text(_isMe ? (supabase.auth.currentUser?.email?.split('@')[0] ?? "User") : "상대방의 옷장",
+                    style: TextStyle(fontSize: 20.sp, fontWeight: FontWeight.w900, color: Colors.black)),
                 const SizedBox(height: 6),
                 StreamBuilder<List<Map<String, dynamic>>>(
-                  stream: supabase
-                      .from('clothes')
-                      .stream(primaryKey: ['id'])
-                      .eq('user_id', _displayUid),
-                  builder: (context, snap) =>
-                      Container(
-                        padding: const EdgeInsets.symmetric(
-                            horizontal: 10, vertical: 4),
-                        decoration: BoxDecoration(color: Colors.black,
-                            borderRadius: BorderRadius.circular(20)),
-                        child: Text("TOTAL ${snap.data?.length ?? 0} ITEMS",
-                            style: TextStyle(color: _pointColor,
-                                fontSize: 10.sp,
-                                fontWeight: FontWeight.w900)),
-                      ),
+                  stream: supabase.from('clothes').stream(primaryKey: ['id']).eq('user_id', _displayUid),
+                  builder: (context, snap) => Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                    decoration: BoxDecoration(color: Colors.black, borderRadius: BorderRadius.circular(20)),
+                    child: Text("TOTAL ${snap.data?.length ?? 0} ITEMS",
+                        style: TextStyle(color: Colors.white, fontSize: 10.sp, fontWeight: FontWeight.w900)), // 🔥 네온색 → 흰색
+                  ),
                 ),
               ],
             ),
@@ -450,8 +389,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
       onTap: () => setState(() => _activeMenuIndex = index),
       child: Column(
         children: [
-          Icon(icon, size: 28.w,
-              color: isActive ? Colors.black : Colors.black26),
+          Icon(icon, size: 28.w, color: isActive ? Colors.black : Colors.black26),
           SizedBox(height: 8.h),
           Text(label, style: TextStyle(fontSize: 12.sp,
               fontWeight: isActive ? FontWeight.w900 : FontWeight.w500,
@@ -463,26 +401,20 @@ class _ProfileScreenState extends State<ProfileScreen> {
 
   Widget _buildTabContent() {
     switch (_activeMenuIndex) {
-      case 0:
-        return _buildMyClothesTab();
-      case 1:
-        return _buildSwapHistoryTab();
-      case 2:
-        return _buildWishlistTab();
-      case 3:
-        return _buildLikedItemsTab();
-      default:
-        return _buildMyClothesTab();
+      case 0: return _buildMyClothesTab();
+      case 1: return _buildSwapHistoryTab();
+      case 2: return _buildWishlistTab();
+      case 3: return _buildLikedItemsTab();
+      default: return _buildMyClothesTab();
     }
   }
 
   Widget _buildMyClothesTab() {
     return StreamBuilder<List<Map<String, dynamic>>>(
-      stream: supabase.from('clothes').stream(primaryKey: ['id']).eq(
-          'user_id', _displayUid),
+      stream: supabase.from('clothes').stream(primaryKey: ['id']).eq('user_id', _displayUid),
       builder: (context, snapshot) {
         if (snapshot.connectionState == ConnectionState.waiting)
-          return Center(child: CircularProgressIndicator(color: _pointColor));
+          return const Center(child: CircularProgressIndicator(color: Colors.black)); // 🔥 네온색 → 검정
         final items = snapshot.data ?? [];
         if (items.isEmpty) return _buildEmptyState("등록된 옷이 없습니다.");
         return GridView.builder(
@@ -490,10 +422,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
           physics: const NeverScrollableScrollPhysics(),
           padding: EdgeInsets.all(16.w),
           gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
-              crossAxisCount: 2,
-              mainAxisSpacing: 15.h,
-              crossAxisSpacing: 15.w,
-              childAspectRatio: 0.78),
+              crossAxisCount: 2, mainAxisSpacing: 15.h, crossAxisSpacing: 15.w, childAspectRatio: 0.78),
           itemCount: items.length,
           itemBuilder: (context, index) => _buildClosetItem(items[index]),
         );
@@ -503,15 +432,13 @@ class _ProfileScreenState extends State<ProfileScreen> {
 
   Widget _buildSwapHistoryTab() {
     return FutureBuilder<List<Map<String, dynamic>>>(
-      future: supabase
-          .from('swaps')
-          .select()
+      future: supabase.from('swaps').select()
           .or('from_user_id.eq.$_displayUid,to_user_id.eq.$_displayUid')
           .eq('status', 'accepted')
           .order('updated_at', ascending: false),
       builder: (context, snapshot) {
         if (snapshot.connectionState == ConnectionState.waiting)
-          return Center(child: CircularProgressIndicator(color: _pointColor));
+          return const Center(child: CircularProgressIndicator(color: Colors.black)); // 🔥 네온색 → 검정
         final swaps = snapshot.data ?? [];
         if (swaps.isEmpty) return _buildEmptyState("완료된 스왑이 없습니다.");
 
@@ -531,7 +458,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
       future: _wishlistService.getWishlistWithDetails(),
       builder: (context, snapshot) {
         if (snapshot.connectionState == ConnectionState.waiting)
-          return Center(child: CircularProgressIndicator(color: _pointColor));
+          return const Center(child: CircularProgressIndicator(color: Colors.black)); // 🔥 네온색 → 검정
         final items = snapshot.data ?? [];
         if (items.isEmpty) return _buildEmptyState("위시리스트가 비어있습니다.");
 
@@ -540,10 +467,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
           physics: const NeverScrollableScrollPhysics(),
           padding: EdgeInsets.all(16.w),
           gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
-            crossAxisCount: 2,
-            mainAxisSpacing: 15.h,
-            crossAxisSpacing: 15.w,
-            childAspectRatio: 0.78,
+            crossAxisCount: 2, mainAxisSpacing: 15.h, crossAxisSpacing: 15.w, childAspectRatio: 0.78,
           ),
           itemCount: items.length,
           itemBuilder: (context, index) => _buildWishlistItem(items[index]),
@@ -557,7 +481,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
       future: _wishlistService.getLikedItemsWithDetails(),
       builder: (context, snapshot) {
         if (snapshot.connectionState == ConnectionState.waiting)
-          return Center(child: CircularProgressIndicator(color: _pointColor));
+          return const Center(child: CircularProgressIndicator(color: Colors.black)); // 🔥 네온색 → 검정
         final items = snapshot.data ?? [];
         if (items.isEmpty) return _buildEmptyState("좋아요한 아이템이 없습니다.");
 
@@ -566,10 +490,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
           physics: const NeverScrollableScrollPhysics(),
           padding: EdgeInsets.all(16.w),
           gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
-            crossAxisCount: 2,
-            mainAxisSpacing: 15.h,
-            crossAxisSpacing: 15.w,
-            childAspectRatio: 0.78,
+            crossAxisCount: 2, mainAxisSpacing: 15.h, crossAxisSpacing: 15.w, childAspectRatio: 0.78,
           ),
           itemCount: items.length,
           itemBuilder: (context, index) => _buildLikedItem(items[index]),
@@ -584,11 +505,9 @@ class _ProfileScreenState extends State<ProfileScreen> {
       child: Center(
         child: Column(
           children: [
-            Icon(
-                Icons.inventory_2_outlined, size: 60.sp, color: Colors.black12),
+            Icon(Icons.inventory_2_outlined, size: 60.sp, color: Colors.black12),
             SizedBox(height: 16.h),
-            Text(message,
-                style: TextStyle(color: Colors.black26, fontSize: 14.sp)),
+            Text(message, style: TextStyle(color: Colors.black26, fontSize: 14.sp)),
           ],
         ),
       ),
@@ -598,16 +517,8 @@ class _ProfileScreenState extends State<ProfileScreen> {
   Widget _buildSwapHistoryCard(Map<String, dynamic> swap) {
     return FutureBuilder<List<Map<String, dynamic>?>>(
       future: Future.wait([
-        supabase
-            .from('clothes')
-            .select()
-            .eq('id', swap['my_item_id'])
-            .maybeSingle(),
-        supabase
-            .from('clothes')
-            .select()
-            .eq('id', swap['target_item_id'])
-            .maybeSingle(),
+        supabase.from('clothes').select().eq('id', swap['my_item_id']).maybeSingle(),
+        supabase.from('clothes').select().eq('id', swap['target_item_id']).maybeSingle(),
       ]),
       builder: (context, snapshot) {
         if (!snapshot.hasData) return const SizedBox();
@@ -629,18 +540,13 @@ class _ProfileScreenState extends State<ProfileScreen> {
               Row(
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
-                  Text("스왑 완료", style: TextStyle(color: Colors.black,
-                      fontSize: 16.sp,
-                      fontWeight: FontWeight.bold)),
+                  Text("스왑 완료", style: TextStyle(color: Colors.black, fontSize: 16.sp, fontWeight: FontWeight.bold)),
                   Container(
-                    padding: EdgeInsets.symmetric(
-                        horizontal: 12.w, vertical: 4.h),
+                    padding: EdgeInsets.symmetric(horizontal: 12.w, vertical: 4.h),
                     decoration: BoxDecoration(
-                        color: _pointColor.withOpacity(0.2),
+                        color: Colors.black.withOpacity(0.1), // 🔥 네온색 → 회색으로 변경
                         borderRadius: BorderRadius.circular(12.r)),
-                    child: Text("완료", style: TextStyle(color: Colors.black,
-                        fontSize: 12.sp,
-                        fontWeight: FontWeight.bold)),
+                    child: Text("완료", style: TextStyle(color: Colors.black, fontSize: 12.sp, fontWeight: FontWeight.bold)),
                   ),
                 ],
               ),
@@ -649,15 +555,13 @@ class _ProfileScreenState extends State<ProfileScreen> {
                 mainAxisAlignment: MainAxisAlignment.spaceEvenly,
                 children: [
                   _buildSwapItemPreview(myItem, "내 아이템"),
-                  Icon(Icons.swap_horiz_rounded, color: Colors.black,
-                      size: 28.sp),
+                  Icon(Icons.swap_horiz_rounded, color: Colors.black, size: 28.sp),
                   _buildSwapItemPreview(targetItem, "교환 아이템"),
                 ],
               ),
               SizedBox(height: 12.h),
               Text(
-                "완료일: ${swap['updated_at']?.toString().split('T')[0] ??
-                    swap['created_at']?.toString().split('T')[0] ?? ''}",
+                "완료일: ${swap['updated_at']?.toString().split('T')[0] ?? swap['created_at']?.toString().split('T')[0] ?? ''}",
                 style: TextStyle(color: Colors.black45, fontSize: 13.sp),
               ),
             ],
@@ -671,29 +575,20 @@ class _ProfileScreenState extends State<ProfileScreen> {
     return Column(
       children: [
         Container(
-          width: 80.w,
-          height: 80.w,
+          width: 80.w, height: 80.w,
           decoration: BoxDecoration(
             borderRadius: BorderRadius.circular(12.r),
             color: const Color(0xFFF2F2F2),
             image: item != null && item['image_url'] != null
-                ? DecorationImage(
-                image: NetworkImage(item['image_url']), fit: BoxFit.cover)
+                ? DecorationImage(image: NetworkImage(item['image_url']), fit: BoxFit.cover)
                 : null,
           ),
-          child: item == null ? const Icon(
-              Icons.image_not_supported, color: Colors.black12) : null,
+          child: item == null ? const Icon(Icons.image_not_supported, color: Colors.black12) : null,
         ),
         SizedBox(height: 8.h),
         Text(label, style: TextStyle(fontSize: 11.sp, color: Colors.black54)),
         if (item != null)
-          Text(
-            item['brand'] ?? '',
-            style: TextStyle(fontSize: 10.sp,
-                color: Colors.black,
-                fontWeight: FontWeight.bold),
-            maxLines: 1,
-          ),
+          Text(item['brand'] ?? '', style: TextStyle(fontSize: 10.sp, color: Colors.black, fontWeight: FontWeight.bold), maxLines: 1),
       ],
     );
   }
@@ -706,18 +601,11 @@ class _ProfileScreenState extends State<ProfileScreen> {
         children: [
           Expanded(
             child: Container(
-              decoration: BoxDecoration(color: const Color(0xFFF2F2F2),
-                  borderRadius: BorderRadius.circular(12.r)),
+              decoration: BoxDecoration(color: const Color(0xFFF2F2F2), borderRadius: BorderRadius.circular(12.r)),
               child: ClipRRect(
                 borderRadius: BorderRadius.circular(12.r),
-                child: Image.network(
-                  item['image_url'] ?? '',
-                  fit: BoxFit.cover,
-                  width: double.infinity,
-                  height: double.infinity,
-                  errorBuilder: (context, e, s) =>
-                  const Icon(Icons.broken_image, color: Colors.black12),
-                ),
+                child: Image.network(item['image_url'] ?? '', fit: BoxFit.cover, width: double.infinity, height: double.infinity,
+                    errorBuilder: (context, e, s) => const Icon(Icons.broken_image, color: Colors.black12)),
               ),
             ),
           ),
@@ -726,18 +614,12 @@ class _ProfileScreenState extends State<ProfileScreen> {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Text(item['brand']?.toUpperCase() ?? 'BRAND', style: TextStyle(
-                    fontSize: 11.sp,
-                    fontWeight: FontWeight.w900,
-                    color: Colors.black,
-                    letterSpacing: 0.5)),
+                Text(item['brand']?.toUpperCase() ?? 'BRAND',
+                    style: TextStyle(fontSize: 11.sp, fontWeight: FontWeight.w900, color: Colors.black, letterSpacing: 0.5)),
                 const SizedBox(height: 2),
-                Text(item['title'] ?? 'ITEM NAME', style: TextStyle(
-                    color: Colors.black87,
-                    fontSize: 13.sp,
-                    fontWeight: FontWeight.w700),
-                    maxLines: 1,
-                    overflow: TextOverflow.ellipsis),
+                Text(item['title'] ?? 'ITEM NAME',
+                    style: TextStyle(color: Colors.black87, fontSize: 13.sp, fontWeight: FontWeight.w700),
+                    maxLines: 1, overflow: TextOverflow.ellipsis),
               ],
             ),
           ),
@@ -746,14 +628,9 @@ class _ProfileScreenState extends State<ProfileScreen> {
     );
   }
 
-  // _buildWishlistItem 메서드만 수정
   Widget _buildWishlistItem(Map<String, dynamic> item) {
     return GestureDetector(
-      onTap: () =>
-          Navigator.push(
-            context,
-            MaterialPageRoute(builder: (_) => ItemDetailScreen(item: item)),
-          ),
+      onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => ItemDetailScreen(item: item))),
       child: Stack(
         children: [
           Column(
@@ -761,18 +638,11 @@ class _ProfileScreenState extends State<ProfileScreen> {
             children: [
               Expanded(
                 child: Container(
-                  decoration: BoxDecoration(color: const Color(0xFFF2F2F2),
-                      borderRadius: BorderRadius.circular(12.r)),
+                  decoration: BoxDecoration(color: const Color(0xFFF2F2F2), borderRadius: BorderRadius.circular(12.r)),
                   child: ClipRRect(
                     borderRadius: BorderRadius.circular(12.r),
-                    child: Image.network(
-                      item['image_url'] ?? '',
-                      fit: BoxFit.cover,
-                      width: double.infinity,
-                      height: double.infinity,
-                      errorBuilder: (context, e, s) =>
-                      const Icon(Icons.broken_image, color: Colors.black12),
-                    ),
+                    child: Image.network(item['image_url'] ?? '', fit: BoxFit.cover, width: double.infinity, height: double.infinity,
+                        errorBuilder: (context, e, s) => const Icon(Icons.broken_image, color: Colors.black12)),
                   ),
                 ),
               ),
@@ -782,50 +652,30 @@ class _ProfileScreenState extends State<ProfileScreen> {
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     Text(item['brand']?.toUpperCase() ?? 'BRAND',
-                        style: TextStyle(fontSize: 11.sp,
-                            fontWeight: FontWeight.w900,
-                            color: Colors.black)),
+                        style: TextStyle(fontSize: 11.sp, fontWeight: FontWeight.w900, color: Colors.black)),
                     const SizedBox(height: 2),
-                    Text(item['title'] ?? 'ITEM', style: TextStyle(
-                        color: Colors.black87,
-                        fontSize: 13.sp,
-                        fontWeight: FontWeight.w700),
-                        maxLines: 1,
-                        overflow: TextOverflow.ellipsis),
+                    Text(item['title'] ?? 'ITEM',
+                        style: TextStyle(color: Colors.black87, fontSize: 13.sp, fontWeight: FontWeight.w700),
+                        maxLines: 1, overflow: TextOverflow.ellipsis),
                   ],
                 ),
               ),
             ],
           ),
           Positioned(
-            top: 8,
-            right: 8,
+            top: 8, right: 8,
             child: GestureDetector(
               onTap: () async {
-                // 위시리스트에서 제거
-                final success = await _wishlistService.removeFromWishlist(
-                    item['id'].toString());
-
+                final success = await _wishlistService.removeFromWishlist(item['id'].toString());
                 if (success && mounted) {
-                  setState(() {}); // UI 새로고침
-
-                  // 🔥 피드백 메시지 (이게 "밑에 뜨는 것")
+                  setState(() {});
                   ScaffoldMessenger.of(context).showSnackBar(
                     SnackBar(
-                      content: const Text('위시리스트에서 제거되었습니다',
-                          style: TextStyle(color: Colors.white,
-                              fontWeight: FontWeight.bold)),
+                      content: const Text('위시리스트에서 제거되었습니다', style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
                       backgroundColor: Colors.black,
                       duration: const Duration(seconds: 2),
                       behavior: SnackBarBehavior.floating,
-                      margin: EdgeInsets.only(
-                        bottom: MediaQuery
-                            .of(context)
-                            .size
-                            .height - 150,
-                        left: 20,
-                        right: 20,
-                      ),
+                      margin: EdgeInsets.only(bottom: MediaQuery.of(context).size.height - 150, left: 20, right: 20),
                     ),
                   );
                 }
@@ -833,8 +683,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
               child: CircleAvatar(
                 radius: 16,
                 backgroundColor: Colors.black.withOpacity(0.7),
-                child: const Icon(
-                    Icons.bookmark, color: Color(0xFFB3EB00), size: 18),
+                child: const Icon(Icons.bookmark, color: Colors.white, size: 18), // 🔥 네온색 → 흰색
               ),
             ),
           ),
@@ -843,14 +692,9 @@ class _ProfileScreenState extends State<ProfileScreen> {
     );
   }
 
-// _buildLikedItem 메서드도 동일하게 수정
   Widget _buildLikedItem(Map<String, dynamic> item) {
     return GestureDetector(
-      onTap: () =>
-          Navigator.push(
-            context,
-            MaterialPageRoute(builder: (_) => ItemDetailScreen(item: item)),
-          ),
+      onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => ItemDetailScreen(item: item))),
       child: Stack(
         children: [
           Column(
@@ -858,18 +702,11 @@ class _ProfileScreenState extends State<ProfileScreen> {
             children: [
               Expanded(
                 child: Container(
-                  decoration: BoxDecoration(color: const Color(0xFFF2F2F2),
-                      borderRadius: BorderRadius.circular(12.r)),
+                  decoration: BoxDecoration(color: const Color(0xFFF2F2F2), borderRadius: BorderRadius.circular(12.r)),
                   child: ClipRRect(
                     borderRadius: BorderRadius.circular(12.r),
-                    child: Image.network(
-                      item['image_url'] ?? '',
-                      fit: BoxFit.cover,
-                      width: double.infinity,
-                      height: double.infinity,
-                      errorBuilder: (context, e, s) =>
-                      const Icon(Icons.broken_image, color: Colors.black12),
-                    ),
+                    child: Image.network(item['image_url'] ?? '', fit: BoxFit.cover, width: double.infinity, height: double.infinity,
+                        errorBuilder: (context, e, s) => const Icon(Icons.broken_image, color: Colors.black12)),
                   ),
                 ),
               ),
@@ -879,50 +716,30 @@ class _ProfileScreenState extends State<ProfileScreen> {
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     Text(item['brand']?.toUpperCase() ?? 'BRAND',
-                        style: TextStyle(fontSize: 11.sp,
-                            fontWeight: FontWeight.w900,
-                            color: Colors.black)),
+                        style: TextStyle(fontSize: 11.sp, fontWeight: FontWeight.w900, color: Colors.black)),
                     const SizedBox(height: 2),
-                    Text(item['title'] ?? 'ITEM', style: TextStyle(
-                        color: Colors.black87,
-                        fontSize: 13.sp,
-                        fontWeight: FontWeight.w700),
-                        maxLines: 1,
-                        overflow: TextOverflow.ellipsis),
+                    Text(item['title'] ?? 'ITEM',
+                        style: TextStyle(color: Colors.black87, fontSize: 13.sp, fontWeight: FontWeight.w700),
+                        maxLines: 1, overflow: TextOverflow.ellipsis),
                   ],
                 ),
               ),
             ],
           ),
           Positioned(
-            top: 8,
-            right: 8,
+            top: 8, right: 8,
             child: GestureDetector(
               onTap: () async {
-                // 좋아요 제거
-                final success = await _wishlistService.removeLike(
-                    item['id'].toString());
-
+                final success = await _wishlistService.removeLike(item['id'].toString());
                 if (success && mounted) {
-                  setState(() {}); // UI 새로고침
-
-                  // 피드백 메시지
+                  setState(() {});
                   ScaffoldMessenger.of(context).showSnackBar(
                     SnackBar(
-                      content: const Text('좋아요가 취소되었습니다',
-                          style: TextStyle(color: Colors.white,
-                              fontWeight: FontWeight.bold)),
+                      content: const Text('좋아요가 취소되었습니다', style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
                       backgroundColor: Colors.black,
                       duration: const Duration(seconds: 2),
                       behavior: SnackBarBehavior.floating,
-                      margin: EdgeInsets.only(
-                        bottom: MediaQuery
-                            .of(context)
-                            .size
-                            .height - 150,
-                        left: 20,
-                        right: 20,
-                      ),
+                      margin: EdgeInsets.only(bottom: MediaQuery.of(context).size.height - 150, left: 20, right: 20),
                     ),
                   );
                 }
