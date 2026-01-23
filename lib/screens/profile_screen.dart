@@ -5,6 +5,7 @@ import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import '../main.dart';
 import '../services/wishlist_service.dart';
+import '../services/trade_statistics_service.dart';
 import 'upload_screen.dart';
 import 'item_detail_screen.dart';
 
@@ -490,40 +491,70 @@ class _ProfileScreenState extends State<ProfileScreen> {
 
   // 🔥 거래 현황 카드
   Widget _buildTradeStats() {
-    return Container(
-      margin: EdgeInsets.all(20.w),
-      padding: EdgeInsets.all(16.w),
-      decoration: BoxDecoration(
-        color: const Color(0xFFF5F5F5),
-        borderRadius: BorderRadius.circular(12.r),
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Text(
-            "이번 달 거래 현황",
-            style: TextStyle(
-              color: Colors.black,
-              fontSize: 14.sp,
-              fontWeight: FontWeight.w900,
-            ),
+    return FutureBuilder<Map<String, int>>(
+      future: TradeStatisticsService().getMonthlyTradeStats(),
+      builder: (context, snapshot) {
+        final stats = snapshot.data ?? {'instant_buy': 0, 'swap_completed': 0};
+
+        return Container(
+          margin: EdgeInsets.all(20.w),
+          padding: EdgeInsets.all(16.w),
+          decoration: BoxDecoration(
+            color: const Color(0xFFF5F5F5),
+            borderRadius: BorderRadius.circular(12.r),
           ),
-          SizedBox(height: 16.h),
-          Row(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Expanded(
-                child: _buildStatItem("3", "즉시구매"),
+              Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  Text(
+                    "이번 달 거래 현황",
+                    style: TextStyle(
+                      color: Colors.black,
+                      fontSize: 14.sp,
+                      fontWeight: FontWeight.w900,
+                    ),
+                  ),
+                  if (snapshot.connectionState == ConnectionState.waiting)
+                    SizedBox(
+                      width: 16.w,
+                      height: 16.w,
+                      child: const CircularProgressIndicator(
+                        strokeWidth: 2,
+                        color: Colors.black,
+                      ),
+                    ),
+                ],
               ),
-              Expanded(
-                child: _buildStatItem("5", "교환완료"),
-              ),
-              Expanded(
-                child: _buildStatItem("2", "위탁판매"),
+              SizedBox(height: 16.h),
+              Row(
+                children: [
+                  Expanded(
+                    child: _buildStatItem(
+                      stats['instant_buy']?.toString() ?? "0",
+                      "즉시구매",
+                    ),
+                  ),
+                  Expanded(
+                    child: _buildStatItem(
+                      stats['swap_completed']?.toString() ?? "0",
+                      "교환완료",
+                    ),
+                  ),
+                  Expanded(
+                    child: _buildStatItem(
+                      "${(stats['instant_buy'] ?? 0) + (stats['swap_completed'] ?? 0)}",
+                      "총 거래",
+                    ),
+                  ),
+                ],
               ),
             ],
           ),
-        ],
-      ),
+        );
+      },
     );
   }
 

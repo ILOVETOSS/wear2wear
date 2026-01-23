@@ -407,9 +407,47 @@ class _HomeScreenState extends State<HomeScreen> {
                   return const Center(child: CircularProgressIndicator(color: Colors.black));
                 }
 
-                final items = snapshot.data!
+                // 🔥 필터링 로직
+                var items = snapshot.data!
                     .where((i) => i['user_id'] != supabase.auth.currentUser?.id)
                     .toList();
+
+                // 선택된 필터에 따라 아이템 필터링
+                if (_selectedFilter == '즉시구매') {
+                  items = items.where((item) =>
+                  item['trade_type'] == '판매만' || item['trade_type'] == '둘다 가능'
+                  ).toList();
+                } else if (_selectedFilter == '교환가능') {
+                  items = items.where((item) =>
+                  item['trade_type'] == '스왑만' || item['trade_type'] == '둘다 가능'
+                  ).toList();
+                } else if (_selectedFilter == '플랫폼재고') {
+                  items = items.where((item) =>
+                  item['is_platform_stock'] == true
+                  ).toList();
+                }
+                // '전체'일 경우 필터링 없이 모든 아이템 표시
+
+                // 결과가 없을 때 처리
+                if (items.isEmpty) {
+                  return Padding(
+                    padding: EdgeInsets.symmetric(vertical: 100.h),
+                    child: Center(
+                      child: Column(
+                        children: [
+                          Icon(Icons.inventory_2_outlined, size: 60.sp, color: Colors.black12),
+                          SizedBox(height: 16.h),
+                          Text(
+                            _selectedFilter == '전체'
+                                ? "등록된 상품이 없습니다."
+                                : "$_selectedFilter 상품이 없습니다.",
+                            style: TextStyle(color: Colors.black26, fontSize: 14.sp),
+                          ),
+                        ],
+                      ),
+                    ),
+                  );
+                }
 
                 return Padding(
                   padding: EdgeInsets.symmetric(horizontal: 20.w),
