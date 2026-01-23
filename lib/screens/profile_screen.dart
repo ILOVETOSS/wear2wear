@@ -44,8 +44,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
     if (!_isMe) return;
 
     final picker = ImagePicker();
-    final XFile? image = await picker.pickImage(
-        source: ImageSource.gallery, imageQuality: 80);
+    final XFile? image = await picker.pickImage(source: ImageSource.gallery, imageQuality: 80);
     if (image == null) return;
 
     final croppedFile = await _imageCropper.cropImage(
@@ -202,7 +201,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                             },
                             style: ElevatedButton.styleFrom(
                               backgroundColor: Colors.black,
-                              foregroundColor: Colors.white, // 🔥 네온색 → 흰색으로 변경
+                              foregroundColor: Colors.white,
                               padding: const EdgeInsets.symmetric(vertical: 16),
                               shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(15)),
                             ),
@@ -230,7 +229,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                       onPressed: () {},
                       style: ElevatedButton.styleFrom(
                         backgroundColor: Colors.black,
-                        foregroundColor: Colors.white, // 🔥 네온색 → 흰색으로 변경
+                        foregroundColor: Colors.white,
                         minimumSize: const Size(double.infinity, 60),
                         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(15)),
                       ),
@@ -304,8 +303,16 @@ class _ProfileScreenState extends State<ProfileScreen> {
           children: [
             _buildProfileHeader(),
             const Divider(height: 1, color: Color(0xFFEEEEEE)),
-            if (_isMe) _buildIconMenuGrid(),
-            const Divider(height: 8, color: Color(0xFFF8F8F8)),
+            if (_isMe) ...[
+              _buildSubscriptionCard(),
+              const Divider(height: 8, color: Color(0xFFF8F8F8)),
+              _buildIconMenuGrid(),
+              const Divider(height: 8, color: Color(0xFFF8F8F8)),
+              _buildTradeStats(),
+              const Divider(height: 8, color: Color(0xFFF8F8F8)),
+              _buildSettlementInfo(),
+              const Divider(height: 8, color: Color(0xFFF8F8F8)),
+            ],
             _buildTabContent(),
           ],
         ),
@@ -337,7 +344,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                     if (_isMe)
                       Positioned(bottom: 0, right: 0,
                           child: CircleAvatar(radius: 12.w, backgroundColor: Colors.black,
-                              child: Icon(Icons.camera_alt, color: Colors.white, size: 12.w))), // 🔥 네온색 → 흰색
+                              child: Icon(Icons.camera_alt, color: Colors.white, size: 12.w))),
                   ],
                 );
               },
@@ -357,10 +364,92 @@ class _ProfileScreenState extends State<ProfileScreen> {
                     padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
                     decoration: BoxDecoration(color: Colors.black, borderRadius: BorderRadius.circular(20)),
                     child: Text("TOTAL ${snap.data?.length ?? 0} ITEMS",
-                        style: TextStyle(color: Colors.white, fontSize: 10.sp, fontWeight: FontWeight.w900)), // 🔥 네온색 → 흰색
+                        style: TextStyle(color: Colors.white, fontSize: 10.sp, fontWeight: FontWeight.w900)),
                   ),
                 ),
               ],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  // 🔥 구독 상태 카드
+  Widget _buildSubscriptionCard() {
+    return Container(
+      margin: EdgeInsets.all(20.w),
+      padding: EdgeInsets.all(20.w),
+      decoration: BoxDecoration(
+        color: Colors.black,
+        borderRadius: BorderRadius.circular(12.r),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    "SWAP BOX 구독중",
+                    style: TextStyle(
+                      color: Colors.white70,
+                      fontSize: 11.sp,
+                      fontWeight: FontWeight.bold,
+                    ),
+                  ),
+                  SizedBox(height: 4.h),
+                  Text(
+                    "월 29,900원",
+                    style: TextStyle(
+                      color: Colors.white,
+                      fontSize: 20.sp,
+                      fontWeight: FontWeight.w900,
+                    ),
+                  ),
+                ],
+              ),
+              TextButton(
+                onPressed: () {},
+                child: Text(
+                  "해지하기",
+                  style: TextStyle(
+                    color: Colors.white70,
+                    fontSize: 11.sp,
+                    decoration: TextDecoration.underline,
+                  ),
+                ),
+              ),
+            ],
+          ),
+          SizedBox(height: 12.h),
+          Text(
+            "다음 배송: 2026.02.15",
+            style: TextStyle(
+              color: Colors.white70,
+              fontSize: 11.sp,
+            ),
+          ),
+          SizedBox(height: 12.h),
+          ElevatedButton(
+            onPressed: () {},
+            style: ElevatedButton.styleFrom(
+              backgroundColor: Colors.white,
+              foregroundColor: Colors.black,
+              minimumSize: Size(double.infinity, 44.h),
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(8.r),
+              ),
+            ),
+            child: Text(
+              "이번 달 큐레이션 보기",
+              style: TextStyle(
+                fontSize: 14.sp,
+                fontWeight: FontWeight.bold,
+              ),
             ),
           ),
         ],
@@ -399,6 +488,124 @@ class _ProfileScreenState extends State<ProfileScreen> {
     );
   }
 
+  // 🔥 거래 현황 카드
+  Widget _buildTradeStats() {
+    return Container(
+      margin: EdgeInsets.all(20.w),
+      padding: EdgeInsets.all(16.w),
+      decoration: BoxDecoration(
+        color: const Color(0xFFF5F5F5),
+        borderRadius: BorderRadius.circular(12.r),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(
+            "이번 달 거래 현황",
+            style: TextStyle(
+              color: Colors.black,
+              fontSize: 14.sp,
+              fontWeight: FontWeight.w900,
+            ),
+          ),
+          SizedBox(height: 16.h),
+          Row(
+            children: [
+              Expanded(
+                child: _buildStatItem("3", "즉시구매"),
+              ),
+              Expanded(
+                child: _buildStatItem("5", "교환완료"),
+              ),
+              Expanded(
+                child: _buildStatItem("2", "위탁판매"),
+              ),
+            ],
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildStatItem(String count, String label) {
+    return Column(
+      children: [
+        Text(
+          count,
+          style: TextStyle(
+            color: Colors.black,
+            fontSize: 20.sp,
+            fontWeight: FontWeight.w900,
+          ),
+        ),
+        SizedBox(height: 4.h),
+        Text(
+          label,
+          style: TextStyle(
+            color: Colors.black54,
+            fontSize: 11.sp,
+          ),
+        ),
+      ],
+    );
+  }
+
+  // 🔥 정산 정보 카드
+  Widget _buildSettlementInfo() {
+    return Container(
+      margin: EdgeInsets.all(20.w),
+      padding: EdgeInsets.all(16.w),
+      decoration: BoxDecoration(
+        color: const Color(0xFFF5F5F5),
+        borderRadius: BorderRadius.circular(12.r),
+      ),
+      child: Row(
+        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+        children: [
+          Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(
+                "이번 달 정산 예정",
+                style: TextStyle(
+                  color: Colors.black54,
+                  fontSize: 11.sp,
+                ),
+              ),
+              SizedBox(height: 4.h),
+              Text(
+                "840,000원",
+                style: TextStyle(
+                  color: Colors.black,
+                  fontSize: 20.sp,
+                  fontWeight: FontWeight.w900,
+                ),
+              ),
+            ],
+          ),
+          ElevatedButton(
+            onPressed: () {},
+            style: ElevatedButton.styleFrom(
+              backgroundColor: Colors.black,
+              foregroundColor: Colors.white,
+              padding: EdgeInsets.symmetric(horizontal: 16.w, vertical: 8.h),
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(8.r),
+              ),
+            ),
+            child: Text(
+              "정산내역",
+              style: TextStyle(
+                fontSize: 14.sp,
+                fontWeight: FontWeight.bold,
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
   Widget _buildTabContent() {
     switch (_activeMenuIndex) {
       case 0: return _buildMyClothesTab();
@@ -414,7 +621,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
       stream: supabase.from('clothes').stream(primaryKey: ['id']).eq('user_id', _displayUid),
       builder: (context, snapshot) {
         if (snapshot.connectionState == ConnectionState.waiting)
-          return const Center(child: CircularProgressIndicator(color: Colors.black)); // 🔥 네온색 → 검정
+          return const Center(child: CircularProgressIndicator(color: Colors.black));
         final items = snapshot.data ?? [];
         if (items.isEmpty) return _buildEmptyState("등록된 옷이 없습니다.");
         return GridView.builder(
@@ -438,7 +645,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
           .order('updated_at', ascending: false),
       builder: (context, snapshot) {
         if (snapshot.connectionState == ConnectionState.waiting)
-          return const Center(child: CircularProgressIndicator(color: Colors.black)); // 🔥 네온색 → 검정
+          return const Center(child: CircularProgressIndicator(color: Colors.black));
         final swaps = snapshot.data ?? [];
         if (swaps.isEmpty) return _buildEmptyState("완료된 스왑이 없습니다.");
 
@@ -458,7 +665,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
       future: _wishlistService.getWishlistWithDetails(),
       builder: (context, snapshot) {
         if (snapshot.connectionState == ConnectionState.waiting)
-          return const Center(child: CircularProgressIndicator(color: Colors.black)); // 🔥 네온색 → 검정
+          return const Center(child: CircularProgressIndicator(color: Colors.black));
         final items = snapshot.data ?? [];
         if (items.isEmpty) return _buildEmptyState("위시리스트가 비어있습니다.");
 
@@ -481,7 +688,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
       future: _wishlistService.getLikedItemsWithDetails(),
       builder: (context, snapshot) {
         if (snapshot.connectionState == ConnectionState.waiting)
-          return const Center(child: CircularProgressIndicator(color: Colors.black)); // 🔥 네온색 → 검정
+          return const Center(child: CircularProgressIndicator(color: Colors.black));
         final items = snapshot.data ?? [];
         if (items.isEmpty) return _buildEmptyState("좋아요한 아이템이 없습니다.");
 
@@ -544,7 +751,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                   Container(
                     padding: EdgeInsets.symmetric(horizontal: 12.w, vertical: 4.h),
                     decoration: BoxDecoration(
-                        color: Colors.black.withOpacity(0.1), // 🔥 네온색 → 회색으로 변경
+                        color: Colors.black.withOpacity(0.1),
                         borderRadius: BorderRadius.circular(12.r)),
                     child: Text("완료", style: TextStyle(color: Colors.black, fontSize: 12.sp, fontWeight: FontWeight.bold)),
                   ),
@@ -554,9 +761,9 @@ class _ProfileScreenState extends State<ProfileScreen> {
               Row(
                 mainAxisAlignment: MainAxisAlignment.spaceEvenly,
                 children: [
-                  _buildSwapItemPreview(myItem, "내 아이템"),
+                  _buildSwapItemPreviewProfile(myItem, "내 아이템"),
                   Icon(Icons.swap_horiz_rounded, color: Colors.black, size: 28.sp),
-                  _buildSwapItemPreview(targetItem, "교환 아이템"),
+                  _buildSwapItemPreviewProfile(targetItem, "교환 아이템"),
                 ],
               ),
               SizedBox(height: 12.h),
@@ -571,7 +778,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
     );
   }
 
-  Widget _buildSwapItemPreview(Map<String, dynamic>? item, String label) {
+  Widget _buildSwapItemPreviewProfile(Map<String, dynamic>? item, String label) {
     return Column(
       children: [
         Container(
@@ -683,7 +890,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
               child: CircleAvatar(
                 radius: 16,
                 backgroundColor: Colors.black.withOpacity(0.7),
-                child: const Icon(Icons.bookmark, color: Colors.white, size: 18), // 🔥 네온색 → 흰색
+                child: const Icon(Icons.bookmark, color: Colors.white, size: 18),
               ),
             ),
           ),
