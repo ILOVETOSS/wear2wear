@@ -7,9 +7,6 @@ import 'chat_screen.dart';
 class MatchScreen extends StatelessWidget {
   const MatchScreen({super.key});
 
-  // ✅ 앱 공통 포인트 컬러
-  final Color _pointColor = const Color(0xFFB3EB00);
-
   @override
   Widget build(BuildContext context) {
     final SwapService service = SwapService();
@@ -18,7 +15,7 @@ class MatchScreen extends StatelessWidget {
     return DefaultTabController(
       length: 2,
       child: Scaffold(
-        backgroundColor: Colors.white, // ✅ 화이트 배경
+        backgroundColor: Colors.white,
         appBar: AppBar(
           backgroundColor: Colors.white,
           elevation: 0,
@@ -32,7 +29,7 @@ class MatchScreen extends StatelessWidget {
             ),
           ),
           bottom: TabBar(
-            indicatorColor: Colors.black, // 인디케이터 블랙
+            indicatorColor: Colors.black,
             labelColor: Colors.black,
             unselectedLabelColor: Colors.black26,
             labelStyle: const TextStyle(fontWeight: FontWeight.w900, fontSize: 15),
@@ -55,13 +52,14 @@ class MatchScreen extends StatelessWidget {
     );
   }
 
-  // --- 탭 1: 채팅방 목록 ---
   Widget _buildChatList(String uid) {
     return StreamBuilder<List<Map<String, dynamic>>>(
       stream: supabase.from('swaps').stream(primaryKey: ['id']),
       builder: (context, snapshot) {
         if (snapshot.connectionState == ConnectionState.waiting) {
-          return Center(child: CircularProgressIndicator(color: _pointColor));
+          return const Center(
+            child: CircularProgressIndicator(color: Colors.black), // 🔥 검정색
+          );
         }
 
         final all = snapshot.data ?? [];
@@ -70,7 +68,12 @@ class MatchScreen extends StatelessWidget {
         ).toList();
 
         if (accepted.isEmpty) {
-          return const Center(child: Text("진행 중인 채팅이 없습니다.", style: TextStyle(color: Colors.black26, fontWeight: FontWeight.bold)));
+          return const Center(
+            child: Text(
+              "진행 중인 채팅이 없습니다.",
+              style: TextStyle(color: Colors.black26, fontWeight: FontWeight.bold),
+            ),
+          );
         }
 
         return ListView.separated(
@@ -117,13 +120,14 @@ class MatchScreen extends StatelessWidget {
     );
   }
 
-  // --- 탭 2: 통합 스왑 현황 ---
   Widget _buildCombinedRequestList(String uid, SwapService service) {
     return StreamBuilder<List<Map<String, dynamic>>>(
       stream: supabase.from('swaps').stream(primaryKey: ['id']),
       builder: (context, snapshot) {
         if (snapshot.connectionState == ConnectionState.waiting) {
-          return Center(child: CircularProgressIndicator(color: _pointColor));
+          return const Center(
+            child: CircularProgressIndicator(color: Colors.black), // 🔥 검정색
+          );
         }
 
         final all = snapshot.data ?? [];
@@ -132,7 +136,12 @@ class MatchScreen extends StatelessWidget {
         ).toList();
 
         if (requests.isEmpty) {
-          return const Center(child: Text("대기 중인 요청이 없습니다.", style: TextStyle(color: Colors.black26, fontWeight: FontWeight.bold)));
+          return const Center(
+            child: Text(
+              "대기 중인 요청이 없습니다.",
+              style: TextStyle(color: Colors.black26, fontWeight: FontWeight.bold),
+            ),
+          );
         }
 
         return ListView.builder(
@@ -157,7 +166,7 @@ class MatchScreen extends StatelessWidget {
           BoxShadow(color: Colors.black.withOpacity(0.05), blurRadius: 15, offset: const Offset(0, 5))
         ],
         border: Border.all(
-            color: isReceived ? _pointColor.withOpacity(0.5) : Colors.black12,
+            color: isReceived ? Colors.black : Colors.black12,
             width: 1.5
         ),
       ),
@@ -175,7 +184,7 @@ class MatchScreen extends StatelessWidget {
                 child: Text(
                   isReceived ? "받은 제안" : "보낸 제안",
                   style: TextStyle(
-                      color: isReceived ? _pointColor : Colors.black,
+                      color: isReceived ? Colors.white : Colors.black,
                       fontSize: 12,
                       fontWeight: FontWeight.w900
                   ),
@@ -216,7 +225,7 @@ class MatchScreen extends StatelessWidget {
                     onPressed: () => service.acceptRequest(req['id']),
                     style: ElevatedButton.styleFrom(
                         backgroundColor: Colors.black,
-                        foregroundColor: _pointColor,
+                        foregroundColor: Colors.white,
                         elevation: 0,
                         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(15)),
                         padding: const EdgeInsets.symmetric(vertical: 14)

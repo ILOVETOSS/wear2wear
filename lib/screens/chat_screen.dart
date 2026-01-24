@@ -17,6 +17,7 @@ class _ChatScreenState extends State<ChatScreen> {
   Map<String, dynamic>? swapData;
   Map<String, dynamic>? senderItem;
   Map<String, dynamic>? receiverItem;
+  bool _isLoading = true; // 🔥 로딩 상태 추가
 
   @override
   void initState() {
@@ -25,10 +26,25 @@ class _ChatScreenState extends State<ChatScreen> {
   }
 
   Future<void> _loadSwapInfo() async {
-    final data = await supabase.from('swaps').select().eq('id', widget.swapId).single();
-    final sItem = await supabase.from('clothes').select().eq('id', data['sender_clothes_id']).single();
-    final rItem = await supabase.from('clothes').select().eq('id', data['receiver_clothes_id']).single();
-    setState(() { swapData = data; senderItem = sItem; receiverItem = rItem; });
+    try {
+      final data = await supabase.from('swaps').select().eq('id', widget.swapId).single();
+      final sItem = await supabase.from('clothes').select().eq('id', data['sender_clothes_id']).single();
+      final rItem = await supabase.from('clothes').select().eq('id', data['receiver_clothes_id']).single();
+
+      if (mounted) {
+        setState(() {
+          swapData = data;
+          senderItem = sItem;
+          receiverItem = rItem;
+          _isLoading = false; // 🔥 로딩 완료
+        });
+      }
+    } catch (e) {
+      debugPrint("스왑 정보 로드 에러: $e");
+      if (mounted) {
+        setState(() => _isLoading = false);
+      }
+    }
   }
 
   @override
@@ -47,14 +63,26 @@ class _ChatScreenState extends State<ChatScreen> {
           child: Container(color: Colors.black12, height: 1.0),
         ),
       ),
-      body: Column(
+      body: _isLoading
+          ? const Center(
+        child: CircularProgressIndicator(
+          color: Colors.black, // 🔥 검정색으로 통일
+        ),
+      )
+          : Column(
         children: [
           if (swapData != null) _buildRequestBanner(),
           Expanded(
             child: StreamBuilder<List<Map<String, dynamic>>>(
               stream: _chatService.getChatMessages(widget.swapId),
               builder: (context, snapshot) {
-                if (!snapshot.hasData) return const Center(child: CircularProgressIndicator(color: Colors.black));
+                if (!snapshot.hasData) {
+                  return const Center(
+                    child: CircularProgressIndicator(
+                      color: Colors.black, // 🔥 검정색으로 통일
+                    ),
+                  );
+                }
                 final msgs = snapshot.data!;
                 return ListView.builder(
                   padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 20),
@@ -73,7 +101,6 @@ class _ChatScreenState extends State<ChatScreen> {
     );
   }
 
-  // ✅ 스왑 정보 배너 (미니멀 디자인)
   Widget _buildRequestBanner() {
     return Container(
       margin: const EdgeInsets.all(16),
@@ -124,7 +151,6 @@ class _ChatScreenState extends State<ChatScreen> {
     );
   }
 
-  // ✅ 채팅 버블 (미니멀 디자인)
   Widget _buildChatBubble(String content, bool isMe) {
     return Align(
       alignment: isMe ? Alignment.centerRight : Alignment.centerLeft,
@@ -154,7 +180,6 @@ class _ChatScreenState extends State<ChatScreen> {
     );
   }
 
-  // ✅ 입력창 (미니멀 디자인)
   Widget _buildInputField() {
     return Container(
       decoration: const BoxDecoration(

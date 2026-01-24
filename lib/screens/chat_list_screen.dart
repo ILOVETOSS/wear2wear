@@ -27,7 +27,11 @@ class ChatListScreen extends StatelessWidget {
         stream: supabase.from('swaps').stream(primaryKey: ['id']),
         builder: (context, snapshot) {
           if (snapshot.connectionState == ConnectionState.waiting) {
-            return const Center(child: CircularProgressIndicator(color: Colors.black));
+            return const Center(
+              child: CircularProgressIndicator(
+                color: Colors.black, // 🔥 검정색으로 통일
+              ),
+            );
           }
 
           final allChats = snapshot.data ?? [];

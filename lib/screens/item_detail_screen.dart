@@ -3,6 +3,7 @@ import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import '../services/wishlist_service.dart';
 import '../services/authentication_service.dart';
+import 'fullscreen_image_viewer.dart';
 
 class ItemDetailScreen extends StatefulWidget {
   final Map<String, dynamic> item;
@@ -21,6 +22,7 @@ class _ItemDetailScreenState extends State<ItemDetailScreen> {
   bool _isInWishlist = false;
   bool _isLiked = false;
   int _likesCount = 0;
+  int _currentImageIndex = 0;
 
   @override
   void initState() {
@@ -159,7 +161,6 @@ class _ItemDetailScreenState extends State<ItemDetailScreen> {
         width: double.infinity,
         child: ElevatedButton(
           onPressed: () {
-            // 🔥 20만원 이상이면 정품 인증 권장
             if (_authService.needsAuthentication(price)) {
               Navigator.pop(context);
               AuthenticationService.showAuthRecommendation(context, () {
@@ -232,7 +233,6 @@ class _ItemDetailScreenState extends State<ItemDetailScreen> {
                   onTap: () {
                     Navigator.pop(context);
 
-                    // 🔥 차액 계산
                     if (myPrice != null && targetPrice != null) {
                       final diff = (targetPrice - myPrice).abs();
                       if (diff > 0) {
@@ -337,14 +337,13 @@ class _ItemDetailScreenState extends State<ItemDetailScreen> {
     ];
   }
 
-  // 🔥 차액 교환 확인 다이얼로그
   void _showDiffSwapConfirmation(
       Map<String, dynamic> myItem,
       int myPrice,
       int targetPrice,
       int diff) {
     final iMustPay = targetPrice > myPrice;
-    final totalPayment = (diff * 1.15).round(); // 차액 + 15% 수수료
+    final totalPayment = (diff * 1.15).round();
 
     showDialog(
       context: context,
@@ -586,6 +585,124 @@ class _ItemDetailScreenState extends State<ItemDetailScreen> {
     );
   }
 
+  // 🔥 이미지 슬라이더 빌더
+  Widget _buildImageSlider() {
+    final List<String> allImages = [];
+
+    if (widget.item['image_url'] != null && widget.item['image_url'].toString().isNotEmpty) {
+      allImages.add(widget.item['image_url'].toString());
+    }
+
+    if (widget.item['image_urls'] != null && widget.item['image_urls'] is List) {
+      for (var url in widget.item['image_urls']) {
+        final urlString = url.toString();
+        if (urlString.isNotEmpty && !allImages.contains(urlString)) {
+          allImages.add(urlString);
+        }
+      }
+    }
+
+    if (allImages.isEmpty) {
+      return AspectRatio(
+        aspectRatio: 1,
+        child: Container(
+          color: const Color(0xFFF5F5F5),
+          child: const Center(
+            child: Icon(Icons.image_not_supported, color: Colors.black12, size: 50),
+          ),
+        ),
+      );
+    }
+
+    return Column(
+      children: [
+        AspectRatio(
+          aspectRatio: 1,
+          child: Stack(
+            children: [
+              PageView.builder(
+                itemCount: allImages.length,
+                onPageChanged: (index) {
+                  setState(() => _currentImageIndex = index);
+                },
+                itemBuilder: (context, index) {
+                  return GestureDetector(
+                    onTap: () => _showFullScreenImage(allImages, index),
+                    child: Container(
+                      color: const Color(0xFFF5F5F5),
+                      child: Image.network(
+                        allImages[index],
+                        fit: BoxFit.cover,
+                        errorBuilder: (context, error, stackTrace) => const Center(
+                          child: Icon(Icons.image_not_supported, color: Colors.black12, size: 50),
+                        ),
+                      ),
+                    ),
+                  );
+                },
+              ),
+
+              if (allImages.length > 1)
+                Positioned(
+                  right: 16.w,
+                  bottom: 16.h,
+                  child: Container(
+                    padding: EdgeInsets.symmetric(horizontal: 12.w, vertical: 6.h),
+                    decoration: BoxDecoration(
+                      color: Colors.black.withOpacity(0.6),
+                      borderRadius: BorderRadius.circular(20.r),
+                    ),
+                    child: Text(
+                      "${_currentImageIndex + 1}/${allImages.length}",
+                      style: TextStyle(
+                        color: Colors.white,
+                        fontSize: 12.sp,
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
+                  ),
+                ),
+            ],
+          ),
+        ),
+
+        if (allImages.length > 1)
+          Container(
+            padding: EdgeInsets.symmetric(vertical: 12.h),
+            child: Row(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: List.generate(
+                allImages.length,
+                    (index) => Container(
+                  width: _currentImageIndex == index ? 24.w : 8.w,
+                  height: 8.h,
+                  margin: EdgeInsets.symmetric(horizontal: 4.w),
+                  decoration: BoxDecoration(
+                    color: _currentImageIndex == index
+                        ? Colors.black
+                        : Colors.black12,
+                    borderRadius: BorderRadius.circular(4.r),
+                  ),
+                ),
+              ),
+            ),
+          ),
+      ],
+    );
+  }
+
+  void _showFullScreenImage(List<String> images, int initialIndex) {
+    Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder: (context) => FullScreenImageViewer(
+          images: images,
+          initialIndex: initialIndex,
+        ),
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     final String authStatus = widget.item['auth_status'] ?? '모름';
@@ -632,19 +749,7 @@ class _ItemDetailScreenState extends State<ItemDetailScreen> {
               ),
             ),
 
-            AspectRatio(
-              aspectRatio: 1,
-              child: Container(
-                color: const Color(0xFFF5F5F5),
-                child: Image.network(
-                  widget.item['image_url'] ?? '',
-                  fit: BoxFit.cover,
-                  errorBuilder: (context, error, stackTrace) => const Center(
-                    child: Icon(Icons.image_not_supported, color: Colors.black12, size: 50),
-                  ),
-                ),
-              ),
-            ),
+            _buildImageSlider(),
 
             Padding(
               padding: EdgeInsets.all(24.w),
