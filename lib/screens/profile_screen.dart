@@ -8,6 +8,7 @@ import '../services/wishlist_service.dart';
 import '../services/trade_statistics_service.dart';
 import 'upload_screen.dart';
 import 'item_detail_screen.dart';
+import 'profile_edit_screen.dart';
 
 class ProfileScreen extends StatefulWidget {
   final String? targetUid;
@@ -327,7 +328,18 @@ class _ProfileScreenState extends State<ProfileScreen> {
       child: Row(
         children: [
           GestureDetector(
-            onTap: _updateProfileImage,
+            onTap: _isMe ? () async {
+              // 프로필 수정 화면으로 이동
+              final result = await Navigator.push(
+                context,
+                MaterialPageRoute(
+                  builder: (_) => const ProfileEditScreen(),
+                ),
+              );
+              if (result == true && mounted) {
+                setState(() {});
+              }
+            } : null,
             child: StreamBuilder<List<Map<String, dynamic>>>(
               stream: supabase.from('profiles').stream(primaryKey: ['id']).eq('id', _displayUid),
               builder: (context, profileSnap) {
@@ -338,14 +350,23 @@ class _ProfileScreenState extends State<ProfileScreen> {
                       radius: 38.w,
                       backgroundColor: const Color(0xFFF5F5F5),
                       backgroundImage: avatarUrl != null ? NetworkImage(avatarUrl) : null,
-                      child: _isUploading
-                          ? const CircularProgressIndicator(color: Colors.black, strokeWidth: 2)
-                          : (avatarUrl == null ? Icon(Icons.person, color: Colors.black12, size: 40.w) : null),
+                      child: avatarUrl == null ? Icon(Icons.person, color: Colors.black12, size: 40.w) : null,
                     ),
                     if (_isMe)
-                      Positioned(bottom: 0, right: 0,
-                          child: CircleAvatar(radius: 12.w, backgroundColor: Colors.black,
-                              child: Icon(Icons.camera_alt, color: Colors.white, size: 12.w))),
+                      Positioned(
+                        bottom: 0,
+                        right: 0,
+                        child: Container(
+                          width: 28.w,
+                          height: 28.w,
+                          decoration: BoxDecoration(
+                            color: Colors.black,
+                            shape: BoxShape.circle,
+                            border: Border.all(color: Colors.white, width: 2),
+                          ),
+                          child: Icon(Icons.edit, color: Colors.white, size: 14.w),  // <- 연필 아이콘
+                        ),
+                      ),
                   ],
                 );
               },
@@ -377,6 +398,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
   }
 
   // 🔥 구독 상태 카드
+  // 🔥 프리미엄 상태 카드 (SWAP BOX 대신)
   Widget _buildSubscriptionCard() {
     return Container(
       margin: EdgeInsets.all(20.w),
@@ -395,7 +417,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   Text(
-                    "SWAP BOX 구독중",
+                    "PREMIUM 계정",
                     style: TextStyle(
                       color: Colors.white70,
                       fontSize: 11.sp,
@@ -404,31 +426,21 @@ class _ProfileScreenState extends State<ProfileScreen> {
                   ),
                   SizedBox(height: 4.h),
                   Text(
-                    "월 29,900원",
+                    "프리미엄 혜택 이용중",
                     style: TextStyle(
                       color: Colors.white,
-                      fontSize: 20.sp,
+                      fontSize: 18.sp,
                       fontWeight: FontWeight.w900,
                     ),
                   ),
                 ],
               ),
-              TextButton(
-                onPressed: () {},
-                child: Text(
-                  "해지하기",
-                  style: TextStyle(
-                    color: Colors.white70,
-                    fontSize: 11.sp,
-                    decoration: TextDecoration.underline,
-                  ),
-                ),
-              ),
+              Icon(Icons.star, color: Colors.white, size: 24.sp),
             ],
           ),
           SizedBox(height: 12.h),
           Text(
-            "다음 배송: 2026.02.15",
+            "무제한 스왑 · 광고 제거",
             style: TextStyle(
               color: Colors.white70,
               fontSize: 11.sp,
@@ -446,7 +458,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
               ),
             ),
             child: Text(
-              "이번 달 큐레이션 보기",
+              "혜택 자세히 보기",
               style: TextStyle(
                 fontSize: 14.sp,
                 fontWeight: FontWeight.bold,
@@ -490,6 +502,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
   }
 
   // 🔥 거래 현황 카드
+  // 🔥 거래 현황 (위탁판매 제거)
   Widget _buildTradeStats() {
     return FutureBuilder<Map<String, int>>(
       future: TradeStatisticsService().getMonthlyTradeStats(),

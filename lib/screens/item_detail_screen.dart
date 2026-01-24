@@ -13,16 +13,12 @@ class ItemDetailScreen extends StatefulWidget {
 }
 
 class _ItemDetailScreenState extends State<ItemDetailScreen> {
-  final PageController _pageController = PageController();
   final _supabase = Supabase.instance.client;
   final WishlistService _wishlistService = WishlistService();
 
-  int _currentPage = 0;
   bool _isInWishlist = false;
   bool _isLiked = false;
   int _likesCount = 0;
-
-  String? _selectedTradeType; // 선택된 거래 방식
 
   @override
   void initState() {
@@ -30,15 +26,8 @@ class _ItemDetailScreenState extends State<ItemDetailScreen> {
     _loadItemStatus();
   }
 
-  @override
-  void dispose() {
-    _pageController.dispose();
-    super.dispose();
-  }
-
   Future<void> _loadItemStatus() async {
     final clothesId = widget.item['id'].toString();
-
     final wishlist = await _wishlistService.checkWishlist(clothesId);
     final liked = await _wishlistService.checkLike(clothesId);
     final count = await _wishlistService.getLikesCount(clothesId);
@@ -69,7 +58,6 @@ class _ItemDetailScreenState extends State<ItemDetailScreen> {
     }
   }
 
-  // 🔥 거래 방식별 모달 표시
   void _showTradeModal(String tradeType) {
     showModalBottomSheet(
       context: context,
@@ -84,38 +72,36 @@ class _ItemDetailScreenState extends State<ItemDetailScreen> {
 
   Widget _buildTradeModalContent(String tradeType) {
     return Container(
+      constraints: BoxConstraints(maxHeight: MediaQuery.of(context).size.height * 0.8),
       padding: EdgeInsets.all(24.w),
-      child: Column(
-        mainAxisSize: MainAxisSize.min,
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-            children: [
-              Text(
-                tradeType == 'instant'
-                    ? '즉시 구매'
-                    : tradeType == 'swap'
-                    ? '교환 제안'
-                    : '플랫폼 재고 교환',
-                style: TextStyle(
-                  color: Colors.black,
-                  fontSize: 20.sp,
-                  fontWeight: FontWeight.w900,
+      child: SingleChildScrollView(
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                Text(
+                  tradeType == 'instant' ? '즉시 구매' : '교환 제안',
+                  style: TextStyle(
+                    color: Colors.black,
+                    fontSize: 20.sp,
+                    fontWeight: FontWeight.w900,
+                  ),
                 ),
-              ),
-              IconButton(
-                icon: const Icon(Icons.close, color: Colors.black),
-                onPressed: () => Navigator.pop(context),
-              ),
-            ],
-          ),
-          SizedBox(height: 24.h),
+                IconButton(
+                  icon: const Icon(Icons.close, color: Colors.black),
+                  onPressed: () => Navigator.pop(context),
+                ),
+              ],
+            ),
+            SizedBox(height: 24.h),
 
-          if (tradeType == 'instant') ..._buildInstantBuyContent(),
-          if (tradeType == 'swap') ..._buildSwapContent(),
-          if (tradeType == 'platform') ..._buildPlatformSwapContent(),
-        ],
+            if (tradeType == 'instant') ..._buildInstantBuyContent(),
+            if (tradeType == 'swap') ..._buildSwapContent(),
+          ],
+        ),
       ),
     );
   }
@@ -133,7 +119,11 @@ class _ItemDetailScreenState extends State<ItemDetailScreen> {
             _buildPriceRow("상품 가격", "450,000원"),
             SizedBox(height: 8.h),
             _buildPriceRow("플랫폼 수수료 (12%)", "54,000원"),
-            Divider(height: 24.h, color: Colors.black12),
+            Container(
+              margin: EdgeInsets.symmetric(vertical: 8.h),
+              height: 1,
+              color: Colors.grey[300],
+            ),
             Row(
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
@@ -141,7 +131,7 @@ class _ItemDetailScreenState extends State<ItemDetailScreen> {
                   "최종 결제금액",
                   style: TextStyle(
                     color: Colors.black,
-                    fontSize: 16.sp,
+                    fontSize: 14.sp,
                     fontWeight: FontWeight.w900,
                   ),
                 ),
@@ -158,25 +148,29 @@ class _ItemDetailScreenState extends State<ItemDetailScreen> {
           ],
         ),
       ),
-      SizedBox(height: 24.h),
-      ElevatedButton(
-        onPressed: () {
-          Navigator.pop(context);
-          _showPaymentSuccess();
-        },
-        style: ElevatedButton.styleFrom(
-          backgroundColor: Colors.black,
-          foregroundColor: Colors.white,
-          minimumSize: Size(double.infinity, 60.h),
-          shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(12.r),
+      SizedBox(height: 16.h),
+      SizedBox(
+        width: double.infinity,
+        child: ElevatedButton(
+          onPressed: () {
+            Navigator.pop(context);
+            _showPaymentSuccess();
+          },
+          style: ElevatedButton.styleFrom(
+            backgroundColor: Colors.black,
+            foregroundColor: Colors.white,
+            padding: EdgeInsets.symmetric(vertical: 16.h),
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(12.r),
+            ),
+            elevation: 0,
           ),
-        ),
-        child: Text(
-          "결제하기",
-          style: TextStyle(
-            fontSize: 16.sp,
-            fontWeight: FontWeight.w900,
+          child: Text(
+            "결제하기",
+            style: TextStyle(
+              fontSize: 16.sp,
+              fontWeight: FontWeight.w900,
+            ),
           ),
         ),
       ),
@@ -194,7 +188,7 @@ class _ItemDetailScreenState extends State<ItemDetailScreen> {
       ),
       SizedBox(height: 16.h),
       SizedBox(
-        height: 200.h,
+        height: 250.h,
         child: StreamBuilder<List<Map<String, dynamic>>>(
           stream: _supabase
               .from('clothes')
@@ -209,10 +203,10 @@ class _ItemDetailScreenState extends State<ItemDetailScreen> {
 
             return GridView.builder(
               gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
-                crossAxisCount: 3,
+                crossAxisCount: 2,
                 crossAxisSpacing: 12.w,
                 mainAxisSpacing: 12.h,
-                childAspectRatio: 0.8,
+                childAspectRatio: 0.85,
               ),
               itemCount: myItems.length,
               itemBuilder: (context, index) {
@@ -227,22 +221,12 @@ class _ItemDetailScreenState extends State<ItemDetailScreen> {
                     child: Column(
                       children: [
                         Expanded(
-                          child: Container(
-                            decoration: BoxDecoration(
-                              color: const Color(0xFFF5F5F5),
-                              borderRadius: BorderRadius.vertical(
-                                top: Radius.circular(10.r),
-                              ),
-                            ),
-                            child: ClipRRect(
-                              borderRadius: BorderRadius.vertical(
-                                top: Radius.circular(10.r),
-                              ),
-                              child: Image.network(
-                                item['image_url'],
-                                fit: BoxFit.cover,
-                                width: double.infinity,
-                              ),
+                          child: ClipRRect(
+                            borderRadius: BorderRadius.vertical(top: Radius.circular(10.r)),
+                            child: Image.network(
+                              item['image_url'],
+                              fit: BoxFit.cover,
+                              width: double.infinity,
                             ),
                           ),
                         ),
@@ -310,162 +294,38 @@ class _ItemDetailScreenState extends State<ItemDetailScreen> {
           ],
         ),
       ),
-    ];
-  }
-
-  List<Widget> _buildPlatformSwapContent() {
-    return [
-      Container(
-        padding: EdgeInsets.all(16.w),
-        decoration: BoxDecoration(
-          color: const Color(0xFFF5F5F5),
-          borderRadius: BorderRadius.circular(12.r),
-        ),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Text(
-              "교환 조합",
-              style: TextStyle(
-                color: Colors.black,
-                fontSize: 14.sp,
-                fontWeight: FontWeight.bold,
-              ),
-            ),
-            SizedBox(height: 12.h),
-            Row(
-              children: [
-                Expanded(child: _buildSwapItemPreview("내 옷", "NIKE Tee", "300,000원")),
-                SizedBox(width: 8.w),
-                Icon(Icons.add, color: Colors.black, size: 20.sp),
-                SizedBox(width: 8.w),
-                Expanded(child: _buildSwapItemPreview("차액", "150,000원", "", isDiff: true)),
-                SizedBox(width: 8.w),
-                Icon(Icons.arrow_forward, color: Colors.black, size: 20.sp),
-                SizedBox(width: 8.w),
-                Expanded(child: _buildSwapItemPreview("SUPREME", "Hoodie", "")),
-              ],
-            ),
-          ],
-        ),
-      ),
       SizedBox(height: 16.h),
-      Container(
-        padding: EdgeInsets.all(16.w),
-        decoration: BoxDecoration(
-          color: const Color(0xFFF5F5F5),
-          borderRadius: BorderRadius.circular(12.r),
-        ),
-        child: Column(
-          children: [
-            _buildPriceRow("차액 결제", "150,000원"),
-            SizedBox(height: 8.h),
-            _buildPriceRow("플랫폼 수수료 (15%)", "22,500원"),
-            Divider(height: 24.h, color: Colors.black12),
-            Row(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-              children: [
-                Text(
-                  "총 결제금액",
-                  style: TextStyle(
-                    color: Colors.black,
-                    fontSize: 16.sp,
-                    fontWeight: FontWeight.w900,
-                  ),
-                ),
-                Text(
-                  "172,500원",
-                  style: TextStyle(
-                    color: Colors.black,
-                    fontSize: 18.sp,
-                    fontWeight: FontWeight.w900,
-                  ),
-                ),
-              ],
+      SizedBox(
+        width: double.infinity,
+        child: ElevatedButton(
+          onPressed: () {
+            Navigator.pop(context);
+            ScaffoldMessenger.of(context).showSnackBar(
+              const SnackBar(
+                content: Text("교환 제안을 보냈습니다!"),
+                backgroundColor: Colors.black,
+              ),
+            );
+          },
+          style: ElevatedButton.styleFrom(
+            backgroundColor: Colors.black,
+            foregroundColor: Colors.white,
+            padding: EdgeInsets.symmetric(vertical: 16.h),
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(12.r),
             ),
-          ],
-        ),
-      ),
-      SizedBox(height: 24.h),
-      ElevatedButton(
-        onPressed: () {
-          Navigator.pop(context);
-          _showPaymentSuccess();
-        },
-        style: ElevatedButton.styleFrom(
-          backgroundColor: Colors.black,
-          foregroundColor: Colors.white,
-          minimumSize: Size(double.infinity, 60.h),
-          shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(12.r),
+            elevation: 0,
           ),
-        ),
-        child: Text(
-          "결제하기",
-          style: TextStyle(
-            fontSize: 16.sp,
-            fontWeight: FontWeight.w900,
+          child: Text(
+            "교환 제안하기",
+            style: TextStyle(
+              fontSize: 16.sp,
+              fontWeight: FontWeight.w900,
+            ),
           ),
         ),
       ),
     ];
-  }
-
-  Widget _buildSwapItemPreview(String brand, String title, String price, {bool isDiff = false}) {
-    return Column(
-      children: [
-        Container(
-          height: 60.h,
-          decoration: BoxDecoration(
-            color: isDiff ? Colors.black : Colors.white,
-            borderRadius: BorderRadius.circular(8.r),
-            border: Border.all(color: isDiff ? Colors.black : const Color(0xFFEEEEEE)),
-          ),
-          child: Center(
-            child: isDiff
-                ? Text(
-              "차액",
-              style: TextStyle(
-                color: Colors.white,
-                fontSize: 12.sp,
-                fontWeight: FontWeight.bold,
-              ),
-            )
-                : const Icon(Icons.checkroom, color: Colors.black12, size: 30),
-          ),
-        ),
-        SizedBox(height: 4.h),
-        Text(
-          brand,
-          style: TextStyle(
-            color: Colors.black,
-            fontSize: 10.sp,
-            fontWeight: FontWeight.w900,
-          ),
-          maxLines: 1,
-          overflow: TextOverflow.ellipsis,
-        ),
-        if (title.isNotEmpty)
-          Text(
-            title,
-            style: TextStyle(
-              color: Colors.black54,
-              fontSize: 9.sp,
-            ),
-            maxLines: 1,
-            overflow: TextOverflow.ellipsis,
-          ),
-        if (price.isNotEmpty)
-          Text(
-            price,
-            style: TextStyle(
-              color: Colors.black,
-              fontSize: 10.sp,
-              fontWeight: FontWeight.bold,
-            ),
-          ),
-      ],
-    );
   }
 
   Widget _buildPriceRow(String label, String value) {
@@ -584,24 +444,28 @@ class _ItemDetailScreenState extends State<ItemDetailScreen> {
                 ),
               ),
               SizedBox(height: 24.h),
-              ElevatedButton(
-                onPressed: () {
-                  Navigator.pop(context);
-                  Navigator.pop(context);
-                },
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: Colors.black,
-                  foregroundColor: Colors.white,
-                  minimumSize: Size(double.infinity, 60.h),
-                  shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(12.r),
+              SizedBox(
+                width: double.infinity,
+                child: ElevatedButton(
+                  onPressed: () {
+                    Navigator.pop(context);
+                    Navigator.pop(context);
+                  },
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: Colors.black,
+                    foregroundColor: Colors.white,
+                    padding: EdgeInsets.symmetric(vertical: 16.h),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(12.r),
+                    ),
+                    elevation: 0,
                   ),
-                ),
-                child: Text(
-                  "확인",
-                  style: TextStyle(
-                    fontSize: 16.sp,
-                    fontWeight: FontWeight.w900,
+                  child: Text(
+                    "확인",
+                    style: TextStyle(
+                      fontSize: 16.sp,
+                      fontWeight: FontWeight.w900,
+                    ),
                   ),
                 ),
               ),
@@ -614,119 +478,68 @@ class _ItemDetailScreenState extends State<ItemDetailScreen> {
 
   @override
   Widget build(BuildContext context) {
-    final List<String> allImages = [];
-    if (widget.item['image_urls'] != null) {
-      allImages.addAll(List<String>.from(widget.item['image_urls']));
-    } else if (widget.item['image_url'] != null) {
-      allImages.add(widget.item['image_url']);
-    }
-
-    final bool isMyItem = widget.item['user_id'] == _supabase.auth.currentUser?.id;
     final String authStatus = widget.item['auth_status'] ?? '모름';
-    final String tradeType = widget.item['trade_type'] ?? '둘다 가능';
+    final bool isMyItem = widget.item['user_id'] == _supabase.auth.currentUser?.id;
 
     return Scaffold(
       backgroundColor: Colors.white,
-      extendBodyBehindAppBar: true,
-      appBar: AppBar(
-        backgroundColor: Colors.transparent,
-        elevation: 0,
-        leading: Padding(
-          padding: const EdgeInsets.all(8.0),
-          child: CircleAvatar(
-            backgroundColor: Colors.white.withOpacity(0.8),
-            child: IconButton(
-              icon: const Icon(Icons.arrow_back_ios_new_rounded, color: Colors.black, size: 18),
-              onPressed: () => Navigator.pop(context),
-            ),
-          ),
-        ),
-        actions: [
-          Padding(
-            padding: const EdgeInsets.all(8.0),
-            child: CircleAvatar(
-              backgroundColor: Colors.white.withOpacity(0.8),
-              child: IconButton(
-                icon: Icon(
-                  _isInWishlist ? Icons.bookmark : Icons.bookmark_border,
-                  color: Colors.black,
-                  size: 20,
-                ),
-                onPressed: _toggleWishlist,
-              ),
-            ),
-          ),
-          Padding(
-            padding: const EdgeInsets.only(right: 8.0, top: 8.0, bottom: 8.0),
-            child: CircleAvatar(
-              backgroundColor: Colors.white.withOpacity(0.8),
-              child: IconButton(
-                icon: Icon(
-                  _isLiked ? Icons.favorite : Icons.favorite_border,
-                  color: _isLiked ? Colors.red : Colors.black,
-                  size: 20,
-                ),
-                onPressed: _toggleLike,
-              ),
-            ),
-          ),
-        ],
-      ),
       body: SingleChildScrollView(
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            // 이미지 영역
-            Stack(
-              children: [
-                SizedBox(
-                  height: MediaQuery.of(context).size.height * 0.6,
-                  child: PageView.builder(
-                    controller: _pageController,
-                    itemCount: allImages.length,
-                    onPageChanged: (int page) => setState(() => _currentPage = page),
-                    itemBuilder: (context, index) {
-                      return Image.network(
-                        allImages[index],
-                        fit: BoxFit.cover,
-                        width: double.infinity,
-                        errorBuilder: (context, error, stackTrace) => Container(
-                          color: Colors.grey[200],
-                          child: const Icon(Icons.image_not_supported, color: Colors.black26, size: 50),
-                        ),
-                      );
-                    },
-                  ),
-                ),
-                if (allImages.length > 1)
-                  Positioned(
-                    bottom: 20,
-                    left: 0,
-                    right: 0,
-                    child: Row(
-                      mainAxisAlignment: MainAxisAlignment.center,
-                      children: List.generate(
-                        allImages.length,
-                            (index) => AnimatedContainer(
-                          duration: const Duration(milliseconds: 300),
-                          margin: const EdgeInsets.symmetric(horizontal: 4),
-                          width: _currentPage == index ? 20 : 8,
-                          height: 8,
-                          decoration: BoxDecoration(
-                            borderRadius: BorderRadius.circular(4),
-                            color: _currentPage == index
-                                ? Colors.black
-                                : Colors.black.withOpacity(0.2),
+            // 🔥 상단 헤더
+            SafeArea(
+              child: Padding(
+                padding: EdgeInsets.symmetric(horizontal: 16.w, vertical: 12.h),
+                child: Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    GestureDetector(
+                      onTap: () => Navigator.pop(context),
+                      child: const Icon(Icons.arrow_back, color: Colors.black),
+                    ),
+                    Row(
+                      children: [
+                        GestureDetector(
+                          onTap: _toggleWishlist,
+                          child: Icon(
+                            _isInWishlist ? Icons.bookmark : Icons.bookmark_border,
+                            color: Colors.black,
                           ),
                         ),
-                      ),
+                        SizedBox(width: 16.w),
+                        GestureDetector(
+                          onTap: _toggleLike,
+                          child: Icon(
+                            _isLiked ? Icons.favorite : Icons.favorite_border,
+                            color: _isLiked ? Colors.red : Colors.black,
+                          ),
+                        ),
+                      ],
                     ),
-                  ),
-              ],
+                  ],
+                ),
+              ),
             ),
 
+            // 🔥 상품 이미지
+            AspectRatio(
+              aspectRatio: 1,
+              child: Container(
+                color: const Color(0xFFF5F5F5),
+                child: Image.network(
+                  widget.item['image_url'] ?? '',
+                  fit: BoxFit.cover,
+                  errorBuilder: (context, error, stackTrace) => const Center(
+                    child: Icon(Icons.image_not_supported, color: Colors.black12, size: 50),
+                  ),
+                ),
+              ),
+            ),
+
+            // 🔥 상품 정보
             Padding(
-              padding: const EdgeInsets.all(24.0),
+              padding: EdgeInsets.all(24.w),
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
@@ -744,197 +557,71 @@ class _ItemDetailScreenState extends State<ItemDetailScreen> {
                       ),
                     ],
                   ),
-                  const SizedBox(height: 12),
+                  SizedBox(height: 12.h),
                   Text(
-                    widget.item['brand'] ?? 'Brand',
-                    style: const TextStyle(
+                    widget.item['brand']?.toUpperCase() ?? 'BRAND',
+                    style: TextStyle(
                       color: Colors.black,
-                      fontSize: 16,
+                      fontSize: 16.sp,
                       fontWeight: FontWeight.w900,
                       letterSpacing: 1.2,
                     ),
                   ),
-                  const SizedBox(height: 8),
+                  SizedBox(height: 8.h),
                   Text(
                     widget.item['title'] ?? 'Title',
-                    style: const TextStyle(
-                      color: Colors.black,
-                      fontSize: 26,
-                      fontWeight: FontWeight.bold,
-                    ),
-                  ),
-                  const SizedBox(height: 30),
-                  const Divider(color: Colors.black12, thickness: 1),
-                  const SizedBox(height: 20),
-                  const Text(
-                    "상품 상세 정보",
                     style: TextStyle(
-                      color: Colors.black54,
-                      fontSize: 14,
-                      fontWeight: FontWeight.bold,
+                      color: Colors.black,
+                      fontSize: 24.sp,
+                      fontWeight: FontWeight.w900,
                     ),
                   ),
-                  const SizedBox(height: 20),
+                  SizedBox(height: 24.h),
+                  Container(
+                    height: 1,
+                    color: const Color(0xFFEEEEEE),
+                  ),
+                  SizedBox(height: 24.h),
                   _buildInfoRow("정품 여부", authStatus),
-                  _buildInfoRow("희망 거래", tradeType),
-                  _buildInfoRow("아이템 상태", widget.item['condition'] ?? "좋음"),
-                  _buildInfoRow("사이즈", widget.item['size'] ?? "FREE"),
-                  _buildInfoRow("카테고리", widget.item['category'] ?? "기타"),
+                  _buildInfoRow("사이즈", widget.item['size'] ?? 'L'),
+                  _buildInfoRow("상태", widget.item['condition'] ?? '상급'),
 
-                  // 🔥 거래 방식 선택 영역
-                  if (!isMyItem) ...[
-                    const SizedBox(height: 40),
-                    Container(
-                      padding: EdgeInsets.all(16.w),
-                      decoration: BoxDecoration(
-                        color: const Color(0xFFF5F5F5),
-                        borderRadius: BorderRadius.circular(12.r),
-                      ),
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Text(
-                            "거래 방식 선택",
-                            style: TextStyle(
-                              color: Colors.black,
-                              fontSize: 14.sp,
-                              fontWeight: FontWeight.w900,
-                            ),
-                          ),
-                          SizedBox(height: 16.h),
+                  SizedBox(height: 32.h),
 
-                          // 즉시 구매
-                          GestureDetector(
-                            onTap: () => _showTradeModal('instant'),
-                            child: Container(
-                              padding: EdgeInsets.all(16.w),
-                              margin: EdgeInsets.only(bottom: 12.h),
-                              decoration: BoxDecoration(
-                                color: Colors.white,
-                                border: Border.all(color: Colors.black, width: 2),
-                                borderRadius: BorderRadius.circular(12.r),
-                              ),
-                              child: Row(
-                                mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                                children: [
-                                  Column(
-                                    crossAxisAlignment: CrossAxisAlignment.start,
-                                    children: [
-                                      Text(
-                                        "즉시 구매",
-                                        style: TextStyle(
-                                          color: Colors.black,
-                                          fontSize: 16.sp,
-                                          fontWeight: FontWeight.w900,
-                                        ),
-                                      ),
-                                      SizedBox(height: 4.h),
-                                      Text(
-                                        "450,000원 (수수료 12%)",
-                                        style: TextStyle(
-                                          color: Colors.black54,
-                                          fontSize: 14.sp,
-                                        ),
-                                      ),
-                                    ],
-                                  ),
-                                  const Icon(Icons.chevron_right, color: Colors.black, size: 20),
-                                ],
-                              ),
-                            ),
-                          ),
-
-                          // 내 옷과 교환
-                          GestureDetector(
-                            onTap: () => _showTradeModal('swap'),
-                            child: Container(
-                              padding: EdgeInsets.all(16.w),
-                              margin: EdgeInsets.only(bottom: 12.h),
-                              decoration: BoxDecoration(
-                                color: Colors.white,
-                                border: Border.all(color: const Color(0xFFEEEEEE)),
-                                borderRadius: BorderRadius.circular(12.r),
-                              ),
-                              child: Row(
-                                mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                                children: [
-                                  Column(
-                                    crossAxisAlignment: CrossAxisAlignment.start,
-                                    children: [
-                                      Text(
-                                        "내 옷과 교환",
-                                        style: TextStyle(
-                                          color: Colors.black,
-                                          fontSize: 16.sp,
-                                          fontWeight: FontWeight.w900,
-                                        ),
-                                      ),
-                                      SizedBox(height: 4.h),
-                                      Text(
-                                        "순수교환 8,000원 | 차액교환 15%",
-                                        style: TextStyle(
-                                          color: Colors.black54,
-                                          fontSize: 14.sp,
-                                        ),
-                                      ),
-                                    ],
-                                  ),
-                                  const Icon(Icons.chevron_right, color: Colors.black, size: 20),
-                                ],
-                              ),
-                            ),
-                          ),
-
-                          // 플랫폼 재고로 교환
-                          GestureDetector(
-                            onTap: () => _showTradeModal('platform'),
-                            child: Container(
-                              padding: EdgeInsets.all(16.w),
-                              decoration: BoxDecoration(
-                                color: Colors.white,
-                                border: Border.all(color: const Color(0xFFEEEEEE)),
-                                borderRadius: BorderRadius.circular(12.r),
-                              ),
-                              child: Row(
-                                mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                                children: [
-                                  Column(
-                                    crossAxisAlignment: CrossAxisAlignment.start,
-                                    children: [
-                                      Row(
-                                        children: [
-                                          const Icon(Icons.inventory_2, size: 16, color: Colors.black),
-                                          SizedBox(width: 8.w),
-                                          Text(
-                                            "플랫폼 재고로 교환",
-                                            style: TextStyle(
-                                              color: Colors.black,
-                                              fontSize: 16.sp,
-                                              fontWeight: FontWeight.w900,
-                                            ),
-                                          ),
-                                        ],
-                                      ),
-                                      SizedBox(height: 4.h),
-                                      Text(
-                                        "내 옷 + 차액 150,000원",
-                                        style: TextStyle(
-                                          color: Colors.black54,
-                                          fontSize: 14.sp,
-                                        ),
-                                      ),
-                                    ],
-                                  ),
-                                  const Icon(Icons.chevron_right, color: Colors.black, size: 20),
-                                ],
-                              ),
-                            ),
-                          ),
-                        ],
-                      ),
+                  // 🔥 거래 방식 선택 (플랫폼 재고 제거)
+                  if (!isMyItem) Container(
+                    padding: EdgeInsets.all(16.w),
+                    decoration: BoxDecoration(
+                      color: const Color(0xFFF5F5F5),
+                      borderRadius: BorderRadius.circular(12.r),
                     ),
-                  ],
-                  const SizedBox(height: 120),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          "거래 방식 선택",
+                          style: TextStyle(
+                            color: Colors.black,
+                            fontSize: 14.sp,
+                            fontWeight: FontWeight.w900,
+                          ),
+                        ),
+                        SizedBox(height: 12.h),
+                        _buildTradeOption(
+                          title: "즉시 구매",
+                          subtitle: "450,000원 (수수료 12%)",
+                          onTap: () => _showTradeModal('instant'),
+                          isBold: true,
+                        ),
+                        SizedBox(height: 8.h),
+                        _buildTradeOption(
+                          title: "내 옷과 교환",
+                          subtitle: "순수교환 8,000원 | 차액교환 15%",
+                          onTap: () => _showTradeModal('swap'),
+                        ),
+                      ],
+                    ),
+                  ),
                 ],
               ),
             ),
@@ -946,13 +633,77 @@ class _ItemDetailScreenState extends State<ItemDetailScreen> {
 
   Widget _buildInfoRow(String label, String value) {
     return Padding(
-      padding: const EdgeInsets.symmetric(vertical: 10),
+      padding: EdgeInsets.symmetric(vertical: 12.h),
       child: Row(
         mainAxisAlignment: MainAxisAlignment.spaceBetween,
         children: [
-          Text(label, style: const TextStyle(color: Colors.black38, fontSize: 15)),
-          Text(value, style: const TextStyle(color: Colors.black, fontSize: 15, fontWeight: FontWeight.w600)),
+          Text(
+            label,
+            style: TextStyle(
+              color: Colors.black45,
+              fontSize: 14.sp,
+            ),
+          ),
+          Text(
+            value,
+            style: TextStyle(
+              color: Colors.black,
+              fontSize: 14.sp,
+              fontWeight: FontWeight.bold,
+            ),
+          ),
         ],
+      ),
+    );
+  }
+
+  Widget _buildTradeOption({
+    required String title,
+    required String subtitle,
+    required VoidCallback onTap,
+    bool isBold = false,
+  }) {
+    return GestureDetector(
+      onTap: onTap,
+      child: Container(
+        padding: EdgeInsets.all(16.w),
+        decoration: BoxDecoration(
+          color: Colors.white,
+          border: Border.all(
+            color: isBold ? Colors.black : const Color(0xFFEEEEEE),
+            width: isBold ? 2 : 1,
+          ),
+          borderRadius: BorderRadius.circular(12.r),
+        ),
+        child: Row(
+          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+          children: [
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    title,
+                    style: TextStyle(
+                      color: Colors.black,
+                      fontSize: 14.sp,
+                      fontWeight: FontWeight.w900,
+                    ),
+                  ),
+                  SizedBox(height: 4.h),
+                  Text(
+                    subtitle,
+                    style: TextStyle(
+                      color: Colors.black54,
+                      fontSize: 12.sp,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+            const Icon(Icons.chevron_right, color: Colors.black, size: 20),
+          ],
+        ),
       ),
     );
   }

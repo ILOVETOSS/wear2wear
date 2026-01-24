@@ -110,6 +110,7 @@ class _BrandDetailScreenState extends State<BrandDetailScreen> {
             SizedBox(height: 20.h),
 
             // 🔥 거래 방식 필터
+            // 🔥 거래 방식 필터
             Padding(
               padding: EdgeInsets.symmetric(horizontal: 16.w),
               child: Row(

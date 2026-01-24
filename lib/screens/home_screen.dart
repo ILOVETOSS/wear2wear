@@ -63,7 +63,7 @@ class _HomeScreenState extends State<HomeScreen> {
           children: [
             SizedBox(height: 16.h),
 
-            // 🔥 SWAP BOX 구독 배너
+            // 🔥 프리미엄 계정 배너 (SWAP BOX 대체)
             Container(
               margin: EdgeInsets.symmetric(horizontal: 20.w),
               padding: EdgeInsets.all(20.w),
@@ -78,7 +78,7 @@ class _HomeScreenState extends State<HomeScreen> {
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       Text(
-                        "SWAP BOX",
+                        "PREMIUM",
                         style: TextStyle(
                           color: Colors.white70,
                           fontSize: 11.sp,
@@ -87,16 +87,16 @@ class _HomeScreenState extends State<HomeScreen> {
                       ),
                       SizedBox(height: 4.h),
                       Text(
-                        "월 29,900원",
+                        "프리미엄으로 업그레이드",
                         style: TextStyle(
                           color: Colors.white,
-                          fontSize: 18.sp,
+                          fontSize: 16.sp,
                           fontWeight: FontWeight.w900,
                         ),
                       ),
                       SizedBox(height: 2.h),
                       Text(
-                        "매달 3벌 큐레이션 배송",
+                        "무제한 스왑 + 광고 제거",
                         style: TextStyle(
                           color: Colors.white70,
                           fontSize: 11.sp,
@@ -115,7 +115,7 @@ class _HomeScreenState extends State<HomeScreen> {
                       ),
                     ),
                     child: Text(
-                      "구독하기",
+                      "가입하기",
                       style: TextStyle(
                         fontSize: 13.sp,
                         fontWeight: FontWeight.bold,
@@ -128,12 +128,12 @@ class _HomeScreenState extends State<HomeScreen> {
 
             SizedBox(height: 16.h),
 
-            // 🔥 거래 타입 필터
+            // 🔥 거래 타입 필터 (위탁판매, 플랫폼재고 제거)
             SingleChildScrollView(
               scrollDirection: Axis.horizontal,
               padding: EdgeInsets.symmetric(horizontal: 20.w),
               child: Row(
-                children: ['전체', '즉시구매', '교환가능', '위탁판매', '플랫폼재고'].map((filter) {
+                children: ['전체', '즉시구매', '교환가능'].map((filter) {
                   final isSelected = _selectedFilter == filter;
                   return Padding(
                     padding: EdgeInsets.only(right: 8.w),
@@ -146,21 +146,13 @@ class _HomeScreenState extends State<HomeScreen> {
                           borderRadius: BorderRadius.circular(20.r),
                           border: isSelected ? null : Border.all(color: const Color(0xFFEEEEEE)),
                         ),
-                        child: Row(
-                          children: [
-                            if (filter == '플랫폼재고') ...[
-                              Icon(Icons.inventory_2, size: 14.sp, color: isSelected ? Colors.white : Colors.black54),
-                              SizedBox(width: 4.w),
-                            ],
-                            Text(
-                              filter,
-                              style: TextStyle(
-                                color: isSelected ? Colors.white : Colors.black54,
-                                fontSize: 13.sp,
-                                fontWeight: FontWeight.bold,
-                              ),
-                            ),
-                          ],
+                        child: Text(
+                          filter,
+                          style: TextStyle(
+                            color: isSelected ? Colors.white : Colors.black54,
+                            fontSize: 13.sp,
+                            fontWeight: FontWeight.bold,
+                          ),
                         ),
                       ),
                     ),
@@ -294,109 +286,6 @@ class _HomeScreenState extends State<HomeScreen> {
               ),
             ),
 
-            // 🔥 플랫폼 직매입 재고 섹션
-            Container(
-              padding: EdgeInsets.symmetric(vertical: 20.h),
-              color: const Color(0xFFF9F9F9),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Padding(
-                    padding: EdgeInsets.symmetric(horizontal: 20.w),
-                    child: Row(
-                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                      children: [
-                        Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            Text(
-                              "플랫폼 보유 재고",
-                              style: TextStyle(
-                                color: Colors.black,
-                                fontSize: 16.sp,
-                                fontWeight: FontWeight.w900,
-                              ),
-                            ),
-                            SizedBox(height: 4.h),
-                            Text(
-                              "내 옷 + 차액으로 교환 가능",
-                              style: TextStyle(
-                                color: Colors.black54,
-                                fontSize: 11.sp,
-                              ),
-                            ),
-                          ],
-                        ),
-                        Icon(Icons.chevron_right, color: Colors.black26, size: 20.sp),
-                      ],
-                    ),
-                  ),
-                  SizedBox(height: 16.h),
-                  SingleChildScrollView(
-                    scrollDirection: Axis.horizontal,
-                    padding: EdgeInsets.symmetric(horizontal: 20.w),
-                    child: Row(
-                      children: List.generate(3, (i) {
-                        return Container(
-                          width: 130.w,
-                          margin: EdgeInsets.only(right: 12.w),
-                          child: Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              Container(
-                                height: 130.w,
-                                decoration: BoxDecoration(
-                                  color: Colors.white,
-                                  borderRadius: BorderRadius.circular(12.r),
-                                  border: Border.all(color: const Color(0xFFEEEEEE)),
-                                ),
-                                child: const Center(
-                                  child: Icon(Icons.checkroom_outlined, size: 40, color: Colors.black12),
-                                ),
-                              ),
-                              SizedBox(height: 8.h),
-                              Text(
-                                "SUPREME",
-                                style: TextStyle(
-                                  color: Colors.black,
-                                  fontSize: 11.sp,
-                                  fontWeight: FontWeight.w900,
-                                ),
-                              ),
-                              SizedBox(height: 4.h),
-                              Text(
-                                "차액 150,000원",
-                                style: TextStyle(
-                                  color: Colors.black54,
-                                  fontSize: 11.sp,
-                                ),
-                              ),
-                              SizedBox(height: 6.h),
-                              Container(
-                                padding: EdgeInsets.symmetric(horizontal: 8.w, vertical: 4.h),
-                                decoration: BoxDecoration(
-                                  color: Colors.black,
-                                  borderRadius: BorderRadius.circular(4.r),
-                                ),
-                                child: Text(
-                                  "재고보유",
-                                  style: TextStyle(
-                                    color: Colors.white,
-                                    fontSize: 10.sp,
-                                    fontWeight: FontWeight.bold,
-                                  ),
-                                ),
-                              ),
-                            ],
-                          ),
-                        );
-                      }),
-                    ),
-                  ),
-                ],
-              ),
-            ),
-
             SizedBox(height: 20.h),
 
             // 🔥 일반 아이템 그리드
@@ -421,12 +310,7 @@ class _HomeScreenState extends State<HomeScreen> {
                   items = items.where((item) =>
                   item['trade_type'] == '스왑만' || item['trade_type'] == '둘다 가능'
                   ).toList();
-                } else if (_selectedFilter == '플랫폼재고') {
-                  items = items.where((item) =>
-                  item['is_platform_stock'] == true
-                  ).toList();
                 }
-                // '전체'일 경우 필터링 없이 모든 아이템 표시
 
                 // 결과가 없을 때 처리
                 if (items.isEmpty) {
