@@ -1,4 +1,4 @@
-import '../main.dart'; // supabase 사용을 위해 추가
+import '../main.dart';
 
 class ClothingItem {
   final String id;
@@ -14,6 +14,10 @@ class ClothingItem {
   final String description;
   final int likes;
   final DateTime createdAt;
+  final int? price; // 🔥 가격 필드 추가
+  final String tradeType; // 🔥 거래 방식
+  final bool isPartnerBrand; // 🔥 파트너 브랜드 여부
+  final String authStatus; // 🔥 정품 인증 상태
 
   ClothingItem({
     required this.id,
@@ -29,9 +33,12 @@ class ClothingItem {
     required this.description,
     required this.likes,
     required this.createdAt,
+    this.price,
+    this.tradeType = '둘다 가능',
+    this.isPartnerBrand = false,
+    this.authStatus = '모름',
   });
 
-  // 🔥 Supabase(Map)에서 데이터를 가져오는 팩토리 생성자
   factory ClothingItem.fromJson(Map<String, dynamic> json) {
     return ClothingItem(
       id: json['id'].toString(),
@@ -48,6 +55,10 @@ class ClothingItem {
       createdAt: json['created_at'] != null
           ? DateTime.parse(json['created_at'])
           : DateTime.now(),
+      price: json['price'],
+      tradeType: json['trade_type'] ?? '둘다 가능',
+      isPartnerBrand: json['is_partner_brand'] ?? false,
+      authStatus: json['auth_status'] ?? '모름',
     );
   }
 
@@ -65,6 +76,10 @@ class ClothingItem {
       'description': description,
       'likes': likes,
       'created_at': createdAt.toIso8601String(),
+      'price': price,
+      'trade_type': tradeType,
+      'is_partner_brand': isPartnerBrand,
+      'auth_status': authStatus,
     };
   }
 }

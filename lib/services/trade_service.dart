@@ -5,9 +5,9 @@ class TradeService {
   final _supabase = supabase;
 
   // 수수료율 상수
-  static const double INSTANT_BUY_FEE_RATE = 0.12; // 즉시구매 12%
-  static const int PURE_SWAP_FEE = 8000; // 순수교환 8,000원
-  static const double DIFF_SWAP_FEE_RATE = 0.15; // 차액교환 15%
+  static const double INSTANT_BUY_FEE_RATE = 0;// 즉시구매 12%
+  static const int PURE_SWAP_FEE = 0; // 순수교환 8,000원
+  static const double DIFF_SWAP_FEE_RATE = 0; // 차액교환 15%
   static const double PLATFORM_SWAP_FEE_RATE = 0.15; // 플랫폼 재고 교환 15%
 
   // 1. 즉시구매 금액 계산

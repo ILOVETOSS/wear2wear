@@ -21,7 +21,7 @@ class _UploadScreenState extends State<UploadScreen> with SingleTickerProviderSt
 
   final List<XFile> _selectedImages = [];
   final List<Uint8List> _webImages = [];
-  final List<String> _existingImageUrls = []; // 🔥 기존 이미지 URL 저장
+  final List<String> _existingImageUrls = [];
   bool _isUploading = false;
 
   String _authStatus = '모름';
@@ -30,34 +30,39 @@ class _UploadScreenState extends State<UploadScreen> with SingleTickerProviderSt
 
   final TextEditingController _brandController = TextEditingController();
   final TextEditingController _titleController = TextEditingController();
+  final TextEditingController _priceController = TextEditingController(); // 🔥 가격 입력
   final TextEditingController _ootdContentController = TextEditingController();
   String _selectedOotdCategory = '스트릿';
 
-  // 🔥 수정 모드인지 확인
   bool get isEditMode => widget.editItem != null;
+  bool get _showPriceInput => _tradeType == '판매만' || _tradeType == '둘다 가능'; // 🔥 가격 입력 표시 조건
 
   @override
   void initState() {
     super.initState();
     _tabController = TabController(length: 2, vsync: this);
-
-    // 🔥 수정 모드일 때 기존 데이터 불러오기
-    if (isEditMode) {
-      _loadExistingData();
-    }
+    if (isEditMode) _loadExistingData();
   }
 
-  // 🔥 기존 데이터 로드
+  @override
+  void dispose() {
+    _brandController.dispose();
+    _titleController.dispose();
+    _priceController.dispose();
+    _ootdContentController.dispose();
+    _tabController.dispose();
+    super.dispose();
+  }
+
   void _loadExistingData() {
     final item = widget.editItem!;
-
     _brandController.text = item['brand'] ?? '';
     _titleController.text = item['title'] ?? '';
+    _priceController.text = item['price']?.toString() ?? '';
     _authStatus = item['auth_status'] ?? '모름';
     _tradeType = item['trade_type'] ?? '둘다 가능';
     _agreedToDisclaimer = item['disclaimer_agreed'] ?? false;
 
-    // 기존 이미지 URL 로드
     if (item['image_urls'] != null && item['image_urls'] is List) {
       _existingImageUrls.addAll(
           List<String>.from(item['image_urls'].map((e) => e.toString()))
@@ -65,7 +70,6 @@ class _UploadScreenState extends State<UploadScreen> with SingleTickerProviderSt
     } else if (item['image_url'] != null) {
       _existingImageUrls.add(item['image_url'].toString());
     }
-
     setState(() {});
   }
 
@@ -76,9 +80,7 @@ class _UploadScreenState extends State<UploadScreen> with SingleTickerProviderSt
       return;
     }
 
-    final List<XFile> pickedFiles = await ImagePicker().pickMultiImage(
-      imageQuality: 50,
-    );
+    final List<XFile> pickedFiles = await ImagePicker().pickMultiImage(imageQuality: 50);
 
     if (pickedFiles.isNotEmpty) {
       for (var file in pickedFiles) {
@@ -101,7 +103,6 @@ class _UploadScreenState extends State<UploadScreen> with SingleTickerProviderSt
     });
   }
 
-  // 🔥 기존 이미지 제거
   void _removeExistingImage(int index) {
     setState(() {
       _existingImageUrls.removeAt(index);
@@ -126,16 +127,27 @@ class _UploadScreenState extends State<UploadScreen> with SingleTickerProviderSt
       return;
     }
 
+    // 🔥 가격 검증
+    if (_tabController.index == 0 && _showPriceInput) {
+      if (_priceController.text.trim().isEmpty) {
+        _showSnackBar("가격을 입력해주세요.");
+        return;
+      }
+      final price = int.tryParse(_priceController.text.trim());
+      if (price == null || price <= 0) {
+        _showSnackBar("올바른 가격을 입력해주세요.");
+        return;
+      }
+    }
+
     setState(() => _isUploading = true);
 
     bool success = false;
 
     if (_tabController.index == 0) {
       if (isEditMode) {
-        // 🔥 수정 모드
         success = await _updateClothingItem();
       } else {
-        // 신규 등록
         success = await _dbService.uploadClothingItem(
           imageFiles: _selectedImages,
           brand: _brandController.text,
@@ -144,6 +156,7 @@ class _UploadScreenState extends State<UploadScreen> with SingleTickerProviderSt
             'trade_type': _tradeType,
             'auth_status': _authStatus,
             'disclaimer_agreed': _agreedToDisclaimer,
+            'price': _showPriceInput ? int.tryParse(_priceController.text.trim()) : null,
           },
         );
       }
@@ -158,7 +171,7 @@ class _UploadScreenState extends State<UploadScreen> with SingleTickerProviderSt
     if (mounted) {
       setState(() => _isUploading = false);
       if (success) {
-        Navigator.pop(context, true); // 🔥 true를 반환하여 수정 완료 알림
+        Navigator.pop(context, true);
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
             content: Text(
@@ -174,13 +187,11 @@ class _UploadScreenState extends State<UploadScreen> with SingleTickerProviderSt
     }
   }
 
-  // 🔥 옷 수정 로직
   Future<bool> _updateClothingItem() async {
     try {
       final user = supabase.auth.currentUser;
       if (user == null) return false;
 
-      // 새로 업로드할 이미지들 처리
       List<String> newUploadedUrls = [];
       for (int i = 0; i < _selectedImages.length; i++) {
         final String fileName = 'clothing/${user.id}/${DateTime.now().millisecondsSinceEpoch}_$i.jpg';
@@ -196,10 +207,8 @@ class _UploadScreenState extends State<UploadScreen> with SingleTickerProviderSt
         newUploadedUrls.add(url);
       }
 
-      // 기존 이미지 + 새 이미지 합치기
       final allImageUrls = [..._existingImageUrls, ...newUploadedUrls];
 
-      // DB 업데이트
       await supabase.from('clothes').update({
         'brand': _brandController.text,
         'title': _titleController.text,
@@ -208,6 +217,7 @@ class _UploadScreenState extends State<UploadScreen> with SingleTickerProviderSt
         'trade_type': _tradeType,
         'auth_status': _authStatus,
         'disclaimer_agreed': _agreedToDisclaimer,
+        'price': _showPriceInput ? int.tryParse(_priceController.text.trim()) : null,
       }).eq('id', widget.editItem!['id']);
 
       return true;
@@ -292,6 +302,13 @@ class _UploadScreenState extends State<UploadScreen> with SingleTickerProviderSt
               setState(() => _tradeType = val);
             }),
             SizedBox(height: 30.h),
+
+            // 🔥 가격 입력 필드 (판매만, 둘다 가능일 때만 표시)
+            if (_showPriceInput) ...[
+              _buildPriceField(),
+              SizedBox(height: 30.h),
+            ],
+
             _sectionLabel("정품 여부"),
             _buildMinimalBoxChips(['정품', '가품', '모름'], _authStatus, (val) {
               setState(() => _authStatus = val);
@@ -311,7 +328,40 @@ class _UploadScreenState extends State<UploadScreen> with SingleTickerProviderSt
     );
   }
 
-  // 🔥 기존 이미지 + 새 이미지 모두 표시
+  // 🔥 가격 입력 필드
+  Widget _buildPriceField() {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text("판매 가격",
+            style: TextStyle(
+                color: Colors.black, fontWeight: FontWeight.w900, fontSize: 14.sp)),
+        TextField(
+          controller: _priceController,
+          keyboardType: TextInputType.number,
+          cursorColor: Colors.black,
+          showCursor: true,
+          style: TextStyle(color: Colors.black, fontSize: 16.sp, fontWeight: FontWeight.w600),
+          decoration: InputDecoration(
+            hintText: "가격을 입력하세요 (원)",
+            hintStyle: TextStyle(color: Colors.grey[300], fontSize: 14.sp),
+            filled: true,
+            fillColor: Colors.white,
+            suffixText: "원",
+            suffixStyle: TextStyle(color: Colors.black54, fontSize: 14.sp),
+            enabledBorder: const UnderlineInputBorder(
+              borderSide: BorderSide(color: Colors.black12, width: 1.0),
+            ),
+            focusedBorder: const UnderlineInputBorder(
+              borderSide: BorderSide(color: Colors.black, width: 1.5),
+            ),
+            contentPadding: EdgeInsets.symmetric(vertical: 12.h, horizontal: 0),
+          ),
+        ),
+      ],
+    );
+  }
+
   Widget _buildMultiImagePicker() {
     final totalCount = _existingImageUrls.length + _selectedImages.length;
 
@@ -321,7 +371,6 @@ class _UploadScreenState extends State<UploadScreen> with SingleTickerProviderSt
         scrollDirection: Axis.horizontal,
         itemCount: totalCount + 1,
         itemBuilder: (context, index) {
-          // 첫 번째는 추가 버튼
           if (index == 0) {
             return GestureDetector(
               onTap: _pickImages,
@@ -349,7 +398,6 @@ class _UploadScreenState extends State<UploadScreen> with SingleTickerProviderSt
           final actualIndex = index - 1;
           final existingCount = _existingImageUrls.length;
 
-          // 기존 이미지 표시
           if (actualIndex < existingCount) {
             return Container(
               width: 100.h,
@@ -382,7 +430,6 @@ class _UploadScreenState extends State<UploadScreen> with SingleTickerProviderSt
             );
           }
 
-          // 새로 추가한 이미지 표시
           final newImageIndex = actualIndex - existingCount;
           return Container(
             width: 100.h,

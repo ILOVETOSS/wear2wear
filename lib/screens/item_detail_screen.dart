@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import '../services/wishlist_service.dart';
+import '../services/authentication_service.dart';
 
 class ItemDetailScreen extends StatefulWidget {
   final Map<String, dynamic> item;
@@ -15,6 +16,7 @@ class ItemDetailScreen extends StatefulWidget {
 class _ItemDetailScreenState extends State<ItemDetailScreen> {
   final _supabase = Supabase.instance.client;
   final WishlistService _wishlistService = WishlistService();
+  final AuthenticationService _authService = AuthenticationService();
 
   bool _isInWishlist = false;
   bool _isLiked = false;
@@ -107,6 +109,10 @@ class _ItemDetailScreenState extends State<ItemDetailScreen> {
   }
 
   List<Widget> _buildInstantBuyContent() {
+    final price = widget.item['price'] as int? ?? 450000;
+    final fee = (price * 0.12).round();
+    final total = price + fee;
+
     return [
       Container(
         padding: EdgeInsets.all(16.w),
@@ -116,9 +122,9 @@ class _ItemDetailScreenState extends State<ItemDetailScreen> {
         ),
         child: Column(
           children: [
-            _buildPriceRow("상품 가격", "450,000원"),
+            _buildPriceRow("상품 가격", "${_formatPrice(price)}원"),
             SizedBox(height: 8.h),
-            _buildPriceRow("플랫폼 수수료 (12%)", "54,000원"),
+            _buildPriceRow("플랫폼 수수료 (12%)", "${_formatPrice(fee)}원"),
             Container(
               margin: EdgeInsets.symmetric(vertical: 8.h),
               height: 1,
@@ -136,7 +142,7 @@ class _ItemDetailScreenState extends State<ItemDetailScreen> {
                   ),
                 ),
                 Text(
-                  "504,000원",
+                  "${_formatPrice(total)}원",
                   style: TextStyle(
                     color: Colors.black,
                     fontSize: 18.sp,
@@ -153,8 +159,16 @@ class _ItemDetailScreenState extends State<ItemDetailScreen> {
         width: double.infinity,
         child: ElevatedButton(
           onPressed: () {
-            Navigator.pop(context);
-            _showPaymentSuccess();
+            // 🔥 20만원 이상이면 정품 인증 권장
+            if (_authService.needsAuthentication(price)) {
+              Navigator.pop(context);
+              AuthenticationService.showAuthRecommendation(context, () {
+                _showPaymentSuccess();
+              });
+            } else {
+              Navigator.pop(context);
+              _showPaymentSuccess();
+            }
           },
           style: ElevatedButton.styleFrom(
             backgroundColor: Colors.black,
@@ -188,7 +202,7 @@ class _ItemDetailScreenState extends State<ItemDetailScreen> {
       ),
       SizedBox(height: 16.h),
       SizedBox(
-        height: 250.h,
+        height: 280.h,
         child: StreamBuilder<List<Map<String, dynamic>>>(
           stream: _supabase
               .from('clothes')
@@ -206,13 +220,30 @@ class _ItemDetailScreenState extends State<ItemDetailScreen> {
                 crossAxisCount: 2,
                 crossAxisSpacing: 12.w,
                 mainAxisSpacing: 12.h,
-                childAspectRatio: 0.85,
+                childAspectRatio: 0.75,
               ),
               itemCount: myItems.length,
               itemBuilder: (context, index) {
                 final item = myItems[index];
+                final myPrice = item['price'] as int?;
+                final targetPrice = widget.item['price'] as int?;
+
                 return GestureDetector(
-                  onTap: () => _sendSwapRequest(item),
+                  onTap: () {
+                    Navigator.pop(context);
+
+                    // 🔥 차액 계산
+                    if (myPrice != null && targetPrice != null) {
+                      final diff = (targetPrice - myPrice).abs();
+                      if (diff > 0) {
+                        _showDiffSwapConfirmation(item, myPrice, targetPrice, diff);
+                      } else {
+                        _sendSwapRequest(item, swapType: 'pure');
+                      }
+                    } else {
+                      _sendSwapRequest(item, swapType: 'pure');
+                    }
+                  },
                   child: Container(
                     decoration: BoxDecoration(
                       border: Border.all(color: const Color(0xFFEEEEEE), width: 2),
@@ -254,6 +285,15 @@ class _ItemDetailScreenState extends State<ItemDetailScreen> {
                                 maxLines: 1,
                                 overflow: TextOverflow.ellipsis,
                               ),
+                              if (myPrice != null)
+                                Text(
+                                  "${_formatPrice(myPrice)}원",
+                                  style: TextStyle(
+                                    color: Colors.black,
+                                    fontSize: 10.sp,
+                                    fontWeight: FontWeight.bold,
+                                  ),
+                                ),
                             ],
                           ),
                         ),
@@ -294,64 +334,131 @@ class _ItemDetailScreenState extends State<ItemDetailScreen> {
           ],
         ),
       ),
-      SizedBox(height: 16.h),
-      SizedBox(
-        width: double.infinity,
-        child: ElevatedButton(
-          onPressed: () {
-            Navigator.pop(context);
-            ScaffoldMessenger.of(context).showSnackBar(
-              const SnackBar(
-                content: Text("교환 제안을 보냈습니다!"),
-                backgroundColor: Colors.black,
-              ),
-            );
-          },
-          style: ElevatedButton.styleFrom(
-            backgroundColor: Colors.black,
-            foregroundColor: Colors.white,
-            padding: EdgeInsets.symmetric(vertical: 16.h),
-            shape: RoundedRectangleBorder(
-              borderRadius: BorderRadius.circular(12.r),
-            ),
-            elevation: 0,
-          ),
-          child: Text(
-            "교환 제안하기",
-            style: TextStyle(
-              fontSize: 16.sp,
-              fontWeight: FontWeight.w900,
-            ),
-          ),
-        ),
-      ),
     ];
   }
 
-  Widget _buildPriceRow(String label, String value) {
-    return Row(
-      mainAxisAlignment: MainAxisAlignment.spaceBetween,
-      children: [
-        Text(
-          label,
-          style: TextStyle(
-            color: Colors.black54,
-            fontSize: 14.sp,
-          ),
+  // 🔥 차액 교환 확인 다이얼로그
+  void _showDiffSwapConfirmation(
+      Map<String, dynamic> myItem,
+      int myPrice,
+      int targetPrice,
+      int diff) {
+    final iMustPay = targetPrice > myPrice;
+    final totalPayment = (diff * 1.15).round(); // 차액 + 15% 수수료
+
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        backgroundColor: Colors.white,
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+        title: const Text(
+          "차액 교환",
+          style: TextStyle(color: Colors.black, fontWeight: FontWeight.w900),
         ),
-        Text(
-          value,
-          style: TextStyle(
-            color: Colors.black,
-            fontSize: 14.sp,
-            fontWeight: FontWeight.bold,
-          ),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text(
+              iMustPay
+                  ? "내 옷 가격이 ${_formatPrice(diff)}원 더 낮습니다."
+                  : "상대 옷 가격이 ${_formatPrice(diff)}원 더 낮습니다.",
+              style: const TextStyle(color: Colors.black, fontSize: 14),
+            ),
+            const SizedBox(height: 12),
+            Container(
+              padding: const EdgeInsets.all(12),
+              decoration: BoxDecoration(
+                color: const Color(0xFFF5F5F5),
+                borderRadius: BorderRadius.circular(8),
+              ),
+              child: Column(
+                children: [
+                  _buildPriceRow("내 옷", "${_formatPrice(myPrice)}원"),
+                  _buildPriceRow("상대 옷", "${_formatPrice(targetPrice)}원"),
+                  const Divider(height: 16),
+                  _buildPriceRow("차액", "${_formatPrice(diff)}원"),
+                  _buildPriceRow("수수료 (15%)", "${_formatPrice((diff * 0.15).round())}원"),
+                  const Divider(height: 16),
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: [
+                      Text(
+                        iMustPay ? "내가 지불" : "상대가 지불",
+                        style: const TextStyle(
+                          color: Colors.black,
+                          fontSize: 14,
+                          fontWeight: FontWeight.w900,
+                        ),
+                      ),
+                      Text(
+                        "${_formatPrice(totalPayment)}원",
+                        style: const TextStyle(
+                          color: Colors.black,
+                          fontSize: 16,
+                          fontWeight: FontWeight.w900,
+                        ),
+                      ),
+                    ],
+                  ),
+                ],
+              ),
+            ),
+          ],
         ),
-      ],
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: const Text(
+              "취소",
+              style: TextStyle(color: Colors.black38),
+            ),
+          ),
+          ElevatedButton(
+            onPressed: () {
+              Navigator.pop(context);
+              _sendSwapRequest(myItem, swapType: 'diff', diffAmount: diff);
+            },
+            style: ElevatedButton.styleFrom(
+              backgroundColor: Colors.black,
+              foregroundColor: Colors.white,
+              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+            ),
+            child: const Text(
+              "교환 제안",
+              style: TextStyle(fontWeight: FontWeight.bold),
+            ),
+          ),
+        ],
+      ),
     );
   }
 
-  Future<void> _sendSwapRequest(Map<String, dynamic> myItem) async {
+  String _formatPrice(int price) {
+    return price.toString().replaceAllMapped(
+        RegExp(r'(\d{1,3})(?=(\d{3})+(?!\d))'), (Match m) => '${m[1]},');
+  }
+
+  Widget _buildPriceRow(String label, String value) {
+    return Padding(
+      padding: const EdgeInsets.symmetric(vertical: 4),
+      child: Row(
+        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+        children: [
+          Text(label,
+              style: const TextStyle(color: Colors.black54, fontSize: 13)),
+          Text(value,
+              style: const TextStyle(
+                  color: Colors.black, fontSize: 13, fontWeight: FontWeight.bold)),
+        ],
+      ),
+    );
+  }
+
+  Future<void> _sendSwapRequest(
+      Map<String, dynamic> myItem,
+      {String swapType = 'pure',
+        int? diffAmount}) async {
     try {
       await _supabase.from('swaps').insert({
         'from_user_id': _supabase.auth.currentUser!.id,
@@ -359,15 +466,18 @@ class _ItemDetailScreenState extends State<ItemDetailScreen> {
         'my_item_id': myItem['id'],
         'target_item_id': widget.item['id'],
         'status': 'pending',
+        'swap_type': swapType,
+        'diff_amount': diffAmount ?? 0,
       });
 
       if (mounted) {
-        Navigator.pop(context);
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
+          SnackBar(
             content: Text(
-              "🚀 스왑 제안을 보냈습니다!",
-              style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold),
+              swapType == 'diff'
+                  ? "🚀 차액 교환 제안을 보냈습니다!"
+                  : "🚀 스왑 제안을 보냈습니다!",
+              style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold),
             ),
             backgroundColor: Colors.black,
           ),
@@ -480,6 +590,7 @@ class _ItemDetailScreenState extends State<ItemDetailScreen> {
   Widget build(BuildContext context) {
     final String authStatus = widget.item['auth_status'] ?? '모름';
     final bool isMyItem = widget.item['user_id'] == _supabase.auth.currentUser?.id;
+    final String tradeType = widget.item['trade_type'] ?? '둘다 가능';
 
     return Scaffold(
       backgroundColor: Colors.white,
@@ -487,7 +598,6 @@ class _ItemDetailScreenState extends State<ItemDetailScreen> {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            // 🔥 상단 헤더
             SafeArea(
               child: Padding(
                 padding: EdgeInsets.symmetric(horizontal: 16.w, vertical: 12.h),
@@ -522,7 +632,6 @@ class _ItemDetailScreenState extends State<ItemDetailScreen> {
               ),
             ),
 
-            // 🔥 상품 이미지
             AspectRatio(
               aspectRatio: 1,
               child: Container(
@@ -537,7 +646,6 @@ class _ItemDetailScreenState extends State<ItemDetailScreen> {
               ),
             ),
 
-            // 🔥 상품 정보
             Padding(
               padding: EdgeInsets.all(24.w),
               child: Column(
@@ -585,11 +693,11 @@ class _ItemDetailScreenState extends State<ItemDetailScreen> {
                   _buildInfoRow("정품 여부", authStatus),
                   _buildInfoRow("사이즈", widget.item['size'] ?? 'L'),
                   _buildInfoRow("상태", widget.item['condition'] ?? '상급'),
+                  _buildInfoRow("거래 방식", tradeType),
 
                   SizedBox(height: 32.h),
 
-                  // 🔥 거래 방식 선택 (플랫폼 재고 제거)
-                  if (!isMyItem) Container(
+                  if (!isMyItem && tradeType != '스왑만') Container(
                     padding: EdgeInsets.all(16.w),
                     decoration: BoxDecoration(
                       color: const Color(0xFFF5F5F5),
@@ -607,21 +715,47 @@ class _ItemDetailScreenState extends State<ItemDetailScreen> {
                           ),
                         ),
                         SizedBox(height: 12.h),
-                        _buildTradeOption(
-                          title: "즉시 구매",
-                          subtitle: "450,000원 (수수료 12%)",
-                          onTap: () => _showTradeModal('instant'),
-                          isBold: true,
-                        ),
-                        SizedBox(height: 8.h),
-                        _buildTradeOption(
-                          title: "내 옷과 교환",
-                          subtitle: "순수교환 8,000원 | 차액교환 15%",
-                          onTap: () => _showTradeModal('swap'),
-                        ),
+                        if (tradeType == '판매만' || tradeType == '둘다 가능')
+                          _buildTradeOption(
+                            title: "즉시 구매",
+                            subtitle: "${_formatPrice(widget.item['price'] ?? 450000)}원 (수수료 0%)",
+                            onTap: () => _showTradeModal('instant'),
+                            isBold: true,
+                          ),
+                        if (tradeType == '둘다 가능') SizedBox(height: 8.h),
+                        if (tradeType == '스왑만' || tradeType == '둘다 가능')
+                          _buildTradeOption(
+                            title: "내 옷과 교환",
+                            subtitle: "순수교환 8,000원 | 차액교환 0%",
+                            onTap: () => _showTradeModal('swap'),
+                          ),
                       ],
                     ),
                   ),
+
+                  if (!isMyItem && tradeType == '스왑만')
+                    SizedBox(
+                      width: double.infinity,
+                      child: ElevatedButton(
+                        onPressed: () => _showTradeModal('swap'),
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: Colors.black,
+                          foregroundColor: Colors.white,
+                          padding: EdgeInsets.symmetric(vertical: 16.h),
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(12.r),
+                          ),
+                          elevation: 0,
+                        ),
+                        child: Text(
+                          "교환 제안하기",
+                          style: TextStyle(
+                            fontSize: 16.sp,
+                            fontWeight: FontWeight.w900,
+                          ),
+                        ),
+                      ),
+                    ),
                 ],
               ),
             ),
