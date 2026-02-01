@@ -283,15 +283,30 @@ class _SwapScreenState extends State<SwapScreen> {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
             content: const Text("구매가 완료되었습니다!",
-                style: TextStyle(color: Colors.black, fontWeight: FontWeight.bold)),
+                style: TextStyle(
+                  color: Colors.black,  // ✅ 유지 (포인트 색상 배경이라 검은색 가능)
+                  fontWeight: FontWeight.bold,
+                )),
             backgroundColor: _pointColor,
+            behavior: SnackBarBehavior.floating,
+            margin: const EdgeInsets.all(16),
+            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
           ),
         );
       }
     } catch (e) {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text("결제 실패"), backgroundColor: Colors.redAccent),
+          SnackBar(
+            content: const Text(
+              "결제 실패",
+              style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold),  // ✅ 흰색
+            ),
+            backgroundColor: Colors.redAccent,
+            behavior: SnackBarBehavior.floating,
+            margin: const EdgeInsets.all(16),
+            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+          ),
         );
       }
     }
@@ -482,28 +497,48 @@ class _SwapScreenState extends State<SwapScreen> {
         int? diffAmount,
         bool iMustPay = false}) async {
     try {
+      // ✅ 수정: named 인자 대신 위치 인자 사용
       await _swapService.sendSwapRequest(
-        receiverId: targetItem['user_id'],
-        receiverClothesId: targetItem['id'],
-        myClothesId: myItem['id'],
+        targetItem['user_id'],      // receiverId (위치 1)
+        targetItem['id'],           // receiverClothesId (위치 2)
+        myItem['id'],               // myClothesId (위치 3)
       );
 
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
             content: Text(
-                swapType == 'diff'
-                    ? "차액 교환 제안을 보냈습니다!"
-                    : "교환 요청 성공! ❤️",
-                style: const TextStyle(color: Colors.black, fontWeight: FontWeight.bold)),
+              swapType == 'diff'
+                  ? "차액 교환 제안을 보냈습니다!"
+                  : "교환 요청 성공! ❤️",
+              style: const TextStyle(
+                color: Colors.black,  // ✅ 유지 (포인트 색상 배경)
+                fontWeight: FontWeight.bold,
+              ),
+            ),
             backgroundColor: _pointColor,
+            behavior: SnackBarBehavior.floating,
+            margin: const EdgeInsets.all(16),
+            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
           ),
         );
       }
     } catch (e) {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text("실패: $e"), backgroundColor: Colors.redAccent),
+          SnackBar(
+            content: Text(
+              "실패: $e",
+              style: const TextStyle(
+                color: Colors.white,  // ✅ 흰색
+                fontWeight: FontWeight.bold,
+              ),
+            ),
+            backgroundColor: Colors.redAccent,
+            behavior: SnackBarBehavior.floating,
+            margin: const EdgeInsets.all(16),
+            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+          ),
         );
       }
     }
@@ -531,7 +566,19 @@ class _SwapScreenState extends State<SwapScreen> {
 
   void _showSnackBar(String message) {
     ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(content: Text(message), backgroundColor: Colors.black),
+      SnackBar(
+        content: Text(
+          message,
+          style: const TextStyle(
+            color: Colors.white,  // ✅ 흰색 글자
+            fontWeight: FontWeight.w600,
+          ),
+        ),
+        backgroundColor: Colors.black,
+        behavior: SnackBarBehavior.floating,
+        margin: const EdgeInsets.all(16),
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+      ),
     );
   }
 

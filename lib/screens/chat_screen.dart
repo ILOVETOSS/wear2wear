@@ -17,7 +17,7 @@ class _ChatScreenState extends State<ChatScreen> {
   Map<String, dynamic>? swapData;
   Map<String, dynamic>? senderItem;
   Map<String, dynamic>? receiverItem;
-  bool _isLoading = true; // 🔥 로딩 상태 추가
+  bool _isLoading = true;
 
   @override
   void initState() {
@@ -36,7 +36,7 @@ class _ChatScreenState extends State<ChatScreen> {
           swapData = data;
           senderItem = sItem;
           receiverItem = rItem;
-          _isLoading = false; // 🔥 로딩 완료
+          _isLoading = false;
         });
       }
     } catch (e) {
@@ -66,7 +66,7 @@ class _ChatScreenState extends State<ChatScreen> {
       body: _isLoading
           ? const Center(
         child: CircularProgressIndicator(
-          color: Colors.black, // 🔥 검정색으로 통일
+          color: Colors.black,
         ),
       )
           : Column(
@@ -74,12 +74,13 @@ class _ChatScreenState extends State<ChatScreen> {
           if (swapData != null) _buildRequestBanner(),
           Expanded(
             child: StreamBuilder<List<Map<String, dynamic>>>(
+              // ✅ 수정: swapId를 인자로 전달 (위치 인자)
               stream: _chatService.getChatMessages(widget.swapId),
               builder: (context, snapshot) {
                 if (!snapshot.hasData) {
                   return const Center(
                     child: CircularProgressIndicator(
-                      color: Colors.black, // 🔥 검정색으로 통일
+                      color: Colors.black,
                     ),
                   );
                 }
@@ -214,6 +215,7 @@ class _ChatScreenState extends State<ChatScreen> {
               GestureDetector(
                 onTap: () {
                   if (_msgController.text.trim().isEmpty) return;
+                  // ✅ 수정: swapId와 content를 위치 인자로 전달
                   _chatService.sendMessage(widget.swapId, _msgController.text.trim());
                   _msgController.clear();
                 },

@@ -1,9 +1,11 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'search_screen.dart';
+import 'notification_screen.dart';
 import '../main.dart';
 import 'item_detail_screen.dart';
 import 'brand_detail_screen.dart';
+import '../services/notification_service.dart';
 
 class HomeScreen extends StatefulWidget {
   const HomeScreen({Key? key}) : super(key: key);
@@ -14,6 +16,7 @@ class HomeScreen extends StatefulWidget {
 
 class _HomeScreenState extends State<HomeScreen> {
   String _selectedFilter = '전체';
+  final NotificationService _notificationService = NotificationService();
 
   @override
   Widget build(BuildContext context) {
@@ -47,6 +50,55 @@ class _HomeScreenState extends State<HomeScreen> {
           ],
         ),
         actions: [
+          // 🔥 알림 아이콘 (검색 옆)
+          StreamBuilder<int>(
+            stream: _notificationService.getUnreadNotificationCount(),
+            builder: (context, snapshot) {
+              final unreadCount = snapshot.data ?? 0;
+
+              return Stack(
+                children: [
+                  IconButton(
+                    icon: Icon(
+                      Icons.notifications_outlined,
+                      color: Colors.black,
+                      size: 26.sp,
+                    ),
+                    onPressed: () {
+                      Navigator.push(
+                        context,
+                        MaterialPageRoute(
+                          builder: (context) => const NotificationScreen(),
+                        ),
+                      );
+                    },
+                  ),
+                  if (unreadCount > 0)
+                    Positioned(
+                      top: 8,
+                      right: 8,
+                      child: Container(
+                        padding: EdgeInsets.all(4.w),
+                        decoration: BoxDecoration(
+                          color: Colors.red,
+                          shape: BoxShape.circle,
+                        ),
+                        child: Text(
+                          unreadCount > 99 ? "99+" : unreadCount.toString(),
+                          style: TextStyle(
+                            color: Colors.white,
+                            fontSize: 9.sp,
+                            fontWeight: FontWeight.bold,
+                          ),
+                        ),
+                      ),
+                    ),
+                ],
+              );
+            },
+          ),
+
+          // 검색 아이콘
           IconButton(
             icon: Icon(Icons.search, color: Colors.black, size: 26.sp),
             onPressed: () => Navigator.push(
@@ -63,7 +115,7 @@ class _HomeScreenState extends State<HomeScreen> {
           children: [
             SizedBox(height: 16.h),
 
-            // 🔥 프리미엄 계정 배너 (SWAP BOX 대체)
+            // 🔥 프리미엄 계정 배너
             Container(
               margin: EdgeInsets.symmetric(horizontal: 20.w),
               padding: EdgeInsets.all(20.w),
@@ -128,7 +180,7 @@ class _HomeScreenState extends State<HomeScreen> {
 
             SizedBox(height: 16.h),
 
-            // 🔥 거래 타입 필터 (위탁판매, 플랫폼재고 제거)
+            // 거래 타입 필터
             SingleChildScrollView(
               scrollDirection: Axis.horizontal,
               padding: EdgeInsets.symmetric(horizontal: 20.w),
@@ -163,7 +215,7 @@ class _HomeScreenState extends State<HomeScreen> {
 
             SizedBox(height: 20.h),
 
-            // 🔥 파트너 브랜드 섹션
+            // 파트너 브랜드 섹션
             Container(
               padding: EdgeInsets.symmetric(vertical: 20.h),
               decoration: const BoxDecoration(
@@ -288,7 +340,7 @@ class _HomeScreenState extends State<HomeScreen> {
 
             SizedBox(height: 20.h),
 
-            // 🔥 일반 아이템 그리드
+            // 일반 아이템 그리드
             StreamBuilder<List<Map<String, dynamic>>>(
               stream: supabase.from('clothes').stream(primaryKey: ['id']).order('created_at'),
               builder: (context, snapshot) {
@@ -296,12 +348,10 @@ class _HomeScreenState extends State<HomeScreen> {
                   return const Center(child: CircularProgressIndicator(color: Colors.black));
                 }
 
-                // 🔥 필터링 로직
                 var items = snapshot.data!
                     .where((i) => i['user_id'] != supabase.auth.currentUser?.id)
                     .toList();
 
-                // 선택된 필터에 따라 아이템 필터링
                 if (_selectedFilter == '즉시구매') {
                   items = items.where((item) =>
                   item['trade_type'] == '판매만' || item['trade_type'] == '둘다 가능'
@@ -312,7 +362,6 @@ class _HomeScreenState extends State<HomeScreen> {
                   ).toList();
                 }
 
-                // 결과가 없을 때 처리
                 if (items.isEmpty) {
                   return Padding(
                     padding: EdgeInsets.symmetric(vertical: 100.h),
@@ -377,7 +426,6 @@ class _HomeScreenState extends State<HomeScreen> {
                                       ),
                                     ),
                                   ),
-                                  // 🔥 정품 배지
                                   if (item['auth_status'] == '정품')
                                     Positioned(
                                       top: 8.h,
@@ -423,7 +471,6 @@ class _HomeScreenState extends State<HomeScreen> {
                               overflow: TextOverflow.ellipsis,
                             ),
                             SizedBox(height: 8.h),
-                            // 🔥 거래 타입 태그
                             Wrap(
                               spacing: 4.w,
                               children: [

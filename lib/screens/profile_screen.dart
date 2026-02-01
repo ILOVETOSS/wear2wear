@@ -6,9 +6,12 @@ import 'package:supabase_flutter/supabase_flutter.dart';
 import '../main.dart';
 import '../services/wishlist_service.dart';
 import '../services/trade_statistics_service.dart';
+import '../services/notification_service.dart';
 import 'upload_screen.dart';
 import 'item_detail_screen.dart';
 import 'profile_edit_screen.dart';
+import 'notification_screen.dart';
+import 'settings_screen.dart';
 
 class ProfileScreen extends StatefulWidget {
   final String? targetUid;
@@ -27,6 +30,7 @@ class ProfileScreen extends StatefulWidget {
 class _ProfileScreenState extends State<ProfileScreen> {
   final ImageCropper _imageCropper = ImageCropper();
   final WishlistService _wishlistService = WishlistService();
+  final NotificationService _notificationService = NotificationService();
 
   bool _isUploading = false;
   late String _displayUid;
@@ -295,9 +299,75 @@ class _ProfileScreenState extends State<ProfileScreen> {
         elevation: 0,
         centerTitle: true,
         actions: [
-          if (_isMe) IconButton(
+          // 🔥 알림 아이콘
+          if (_isMe)
+            StreamBuilder<int>(
+              stream: _notificationService.getUnreadNotificationCount(),
+              builder: (context, snapshot) {
+                final unreadCount = snapshot.data ?? 0;
+
+                return Stack(
+                  children: [
+                    IconButton(
+                      icon: Icon(
+                        Icons.notifications_outlined,
+                        color: Colors.black45,
+                        size: 20.sp,
+                      ),
+                      onPressed: () {
+                        Navigator.push(
+                          context,
+                          MaterialPageRoute(
+                            builder: (context) => const NotificationScreen(),
+                          ),
+                        );
+                      },
+                    ),
+                    if (unreadCount > 0)
+                      Positioned(
+                        top: 8,
+                        right: 8,
+                        child: Container(
+                          padding: EdgeInsets.all(2.w),
+                          decoration: const BoxDecoration(
+                            color: Colors.red,
+                            shape: BoxShape.circle,
+                          ),
+                          child: Text(
+                            unreadCount > 9 ? "9+" : unreadCount.toString(),
+                            style: TextStyle(
+                              color: Colors.white,
+                              fontSize: 8.sp,
+                              fontWeight: FontWeight.bold,
+                            ),
+                          ),
+                        ),
+                      ),
+                  ],
+                );
+              },
+            ),
+
+          // 🔥 설정 아이콘
+          if (_isMe)
+            IconButton(
+              icon: Icon(Icons.settings_outlined, color: Colors.black45, size: 20.sp),
+              onPressed: () {
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(
+                    builder: (context) => const SettingsScreen(),
+                  ),
+                );
+              },
+            ),
+
+          // 로그아웃 버튼 (기존)
+          if (_isMe)
+            IconButton(
               icon: const Icon(Icons.logout_rounded, color: Colors.black45),
-              onPressed: () async => await supabase.auth.signOut()),
+              onPressed: () async => await supabase.auth.signOut(),
+            ),
         ],
       ),
       body: SingleChildScrollView(
@@ -329,7 +399,6 @@ class _ProfileScreenState extends State<ProfileScreen> {
         children: [
           GestureDetector(
             onTap: _isMe ? () async {
-              // 프로필 수정 화면으로 이동
               final result = await Navigator.push(
                 context,
                 MaterialPageRoute(
@@ -364,7 +433,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                             shape: BoxShape.circle,
                             border: Border.all(color: Colors.white, width: 2),
                           ),
-                          child: Icon(Icons.edit, color: Colors.white, size: 14.w),  // <- 연필 아이콘
+                          child: Icon(Icons.edit, color: Colors.white, size: 14.w),
                         ),
                       ),
                   ],
@@ -397,8 +466,6 @@ class _ProfileScreenState extends State<ProfileScreen> {
     );
   }
 
-  // 🔥 구독 상태 카드
-  // 🔥 프리미엄 상태 카드 (SWAP BOX 대신)
   Widget _buildSubscriptionCard() {
     return Container(
       margin: EdgeInsets.all(20.w),
@@ -501,8 +568,6 @@ class _ProfileScreenState extends State<ProfileScreen> {
     );
   }
 
-  // 🔥 거래 현황 카드
-  // 🔥 거래 현황 (위탁판매 제거)
   Widget _buildTradeStats() {
     return FutureBuilder<Map<String, int>>(
       future: TradeStatisticsService().getMonthlyTradeStats(),
@@ -594,7 +659,6 @@ class _ProfileScreenState extends State<ProfileScreen> {
     );
   }
 
-  // 🔥 정산 정보 카드
   Widget _buildSettlementInfo() {
     return Container(
       margin: EdgeInsets.all(20.w),
@@ -797,7 +861,8 @@ class _ProfileScreenState extends State<ProfileScreen> {
                     decoration: BoxDecoration(
                         color: Colors.black.withOpacity(0.1),
                         borderRadius: BorderRadius.circular(12.r)),
-                    child: Text("완료", style: TextStyle(color: Colors.black, fontSize: 12.sp, fontWeight: FontWeight.bold)),
+                    child: Text(
+                        "완료", style: TextStyle(color: Colors.black, fontSize: 12.sp, fontWeight: FontWeight.bold)),
                   ),
                 ],
               ),

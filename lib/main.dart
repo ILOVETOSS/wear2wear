@@ -1,7 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
-
+import 'screens/notification_screen.dart';
+import 'screens/settings_screen.dart';
 import 'theme/app_theme.dart';
 import 'screens/community_screen.dart';
 import 'screens/home_screen.dart';
