@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
-import '../main.dart';
+import '../services/account_service.dart';
+import 'account_dialogs.dart';
+import 'login_screen.dart';
 
 class SettingsScreen extends StatefulWidget {
   const SettingsScreen({super.key});
@@ -10,10 +12,9 @@ class SettingsScreen extends StatefulWidget {
 }
 
 class _SettingsScreenState extends State<SettingsScreen> {
-  bool _notificationEnabled = true;
-  bool _messageNotification = true;
-  bool _swapNotification = true;
-  bool _likeNotification = true;
+  final AccountService _accountService = AccountService();
+  bool _notificationsEnabled = true;
+  bool _darkModeEnabled = false;
 
   @override
   Widget build(BuildContext context) {
@@ -22,187 +23,284 @@ class _SettingsScreenState extends State<SettingsScreen> {
       appBar: AppBar(
         backgroundColor: Colors.white,
         elevation: 0,
-        leading: IconButton(
-          icon: const Icon(Icons.arrow_back_ios, color: Colors.black),
-          onPressed: () => Navigator.pop(context),
-        ),
-        title: const Text(
-          "SETTINGS",
+        title: Text(
+          "설정",
           style: TextStyle(
             color: Colors.black,
+            fontSize: 20.sp,
             fontWeight: FontWeight.w900,
-            letterSpacing: 1.2,
           ),
         ),
         centerTitle: true,
       ),
       body: SingleChildScrollView(
+        padding: EdgeInsets.symmetric(horizontal: 20.w),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            // 알림 설정 섹션
-            _buildSectionHeader("알림 설정"),
-            _buildSettingTile(
-              icon: Icons.notifications_outlined,
-              title: "알림 전체 활성화",
-              subtitle: "모든 알림을 받습니다",
-              value: _notificationEnabled,
-              onChanged: (value) {
-                setState(() => _notificationEnabled = value);
+            SizedBox(height: 20.h),
+
+            // ===== 계정 섹션 =====
+            Text(
+              "계정",
+              style: TextStyle(
+                color: Colors.black,
+                fontSize: 14.sp,
+                fontWeight: FontWeight.w900,
+                letterSpacing: 0.5,
+              ),
+            ),
+
+            SizedBox(height: 12.h),
+
+            // 프로필 수정
+            _buildSettingButton(
+              icon: Icons.person,
+              title: "프로필 수정",
+              subtitle: "이름, 닉네임, 프로필 사진 변경",
+              onTap: () {
+                ScaffoldMessenger.of(context).showSnackBar(
+                  const SnackBar(
+                    content: Text("프로필 수정 화면으로 이동합니다."),
+                    backgroundColor: Colors.black,
+                  ),
+                );
               },
             ),
-            Padding(
-              padding: EdgeInsets.symmetric(horizontal: 20.w),
-              child: const Divider(height: 1, color: Color(0xFFEEEEEE)),
+
+            // 비밀번호 변경
+            _buildSettingButton(
+              icon: Icons.lock,
+              title: "비밀번호 변경",
+              subtitle: "현재 비밀번호를 변경합니다",
+              onTap: () {
+                _showPasswordChangeDialog();
+              },
             ),
-            Padding(
-              padding: EdgeInsets.only(left: 20.w, top: 12.h, bottom: 12.h),
-              child: Text(
-                "세부 알림 설정",
-                style: TextStyle(
-                  color: Colors.black54,
-                  fontSize: 12.sp,
-                  fontWeight: FontWeight.bold,
+
+            // 이메일 변경
+            _buildSettingButton(
+              icon: Icons.email,
+              title: "이메일 변경",
+              subtitle: "계정 이메일을 변경합니다",
+              onTap: () {
+                ScaffoldMessenger.of(context).showSnackBar(
+                  const SnackBar(
+                    content: Text("이메일 변경 화면으로 이동합니다."),
+                    backgroundColor: Colors.black,
+                  ),
+                );
+              },
+            ),
+
+            SizedBox(height: 32.h),
+
+            // ===== 알림 섹션 =====
+            Text(
+              "알림",
+              style: TextStyle(
+                color: Colors.black,
+                fontSize: 14.sp,
+                fontWeight: FontWeight.w900,
+                letterSpacing: 0.5,
+              ),
+            ),
+
+            SizedBox(height: 12.h),
+
+            // 푸시 알림
+            _buildSettingToggle(
+              icon: Icons.notifications,
+              title: "푸시 알림",
+              subtitle: "거래 및 메시지 알림",
+              value: _notificationsEnabled,
+              onChanged: (value) {
+                setState(() => _notificationsEnabled = value);
+              },
+            ),
+
+            // 알림 설정 상세
+            if (_notificationsEnabled)
+              Padding(
+                padding: EdgeInsets.only(top: 12.h),
+                child: _buildSettingButton(
+                  icon: Icons.tune,
+                  title: "알림 설정 상세",
+                  subtitle: "거래, 메시지, 프로모션 알림 설정",
+                  onTap: () {
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      const SnackBar(
+                        content: Text("알림 설정 상세 화면으로 이동합니다."),
+                        backgroundColor: Colors.black,
+                      ),
+                    );
+                  },
                 ),
               ),
-            ),
-            if (_notificationEnabled) ...[
-              _buildSettingTile(
-                icon: Icons.message_outlined,
-                title: "메시지 알림",
-                subtitle: "새 메시지를 받습니다",
-                value: _messageNotification,
-                onChanged: (value) {
-                  setState(() => _messageNotification = value);
-                },
-                indent: true,
-              ),
-              _buildSettingTile(
-                icon: Icons.swap_horiz_rounded,
-                title: "교환 요청 알림",
-                subtitle: "교환 요청 및 응답 알림",
-                value: _swapNotification,
-                onChanged: (value) {
-                  setState(() => _swapNotification = value);
-                },
-                indent: true,
-              ),
-              _buildSettingTile(
-                icon: Icons.favorite_outline,
-                title: "좋아요 알림",
-                subtitle: "좋아요를 받으면 알림",
-                value: _likeNotification,
-                onChanged: (value) {
-                  setState(() => _likeNotification = value);
-                },
-                indent: true,
-              ),
-            ],
 
-            SizedBox(height: 24.h),
+            SizedBox(height: 32.h),
 
-            // 계정 설정 섹션
-            _buildSectionHeader("계정"),
-            _buildSettingButton(
-              icon: Icons.lock_outline,
-              title: "비밀번호 변경",
-              onTap: () {
-                // 비밀번호 변경 로직
+            // ===== 앱 설정 섹션 =====
+            Text(
+              "앱 설정",
+              style: TextStyle(
+                color: Colors.black,
+                fontSize: 14.sp,
+                fontWeight: FontWeight.w900,
+                letterSpacing: 0.5,
+              ),
+            ),
+
+            SizedBox(height: 12.h),
+
+            // 다크모드
+            _buildSettingToggle(
+              icon: Icons.dark_mode,
+              title: "다크모드",
+              subtitle: "앱 화면을 다크모드로 표시합니다",
+              value: _darkModeEnabled,
+              onChanged: (value) {
+                setState(() => _darkModeEnabled = value);
               },
             ),
+
+            // 언어 설정
             _buildSettingButton(
-              icon: Icons.email_outlined,
-              title: "이메일 변경",
+              icon: Icons.language,
+              title: "언어",
+              subtitle: "한국어",
               onTap: () {
-                // 이메일 변경 로직
+                ScaffoldMessenger.of(context).showSnackBar(
+                  const SnackBar(
+                    content: Text("언어 설정 화면으로 이동합니다."),
+                    backgroundColor: Colors.black,
+                  ),
+                );
               },
             ),
-            _buildSettingButton(
-              icon: Icons.privacy_tip_outlined,
-              title: "개인정보 정책",
-              onTap: () {
-                // 개인정보 정책 보기
-              },
+
+            SizedBox(height: 32.h),
+
+            // ===== 기타 섹션 =====
+            Text(
+              "기타",
+              style: TextStyle(
+                color: Colors.black,
+                fontSize: 14.sp,
+                fontWeight: FontWeight.w900,
+                letterSpacing: 0.5,
+              ),
             ),
+
+            SizedBox(height: 12.h),
+
+            // 이용약관
             _buildSettingButton(
-              icon: Icons.description_outlined,
+              icon: Icons.description,
               title: "이용약관",
               onTap: () {
-                // 이용약관 보기
+                ScaffoldMessenger.of(context).showSnackBar(
+                  const SnackBar(
+                    content: Text("이용약관 페이지로 이동합니다."),
+                    backgroundColor: Colors.black,
+                  ),
+                );
               },
             ),
 
-            SizedBox(height: 24.h),
+            // 개인정보처리방침
+            _buildSettingButton(
+              icon: Icons.privacy_tip,
+              title: "개인정보처리방침",
+              onTap: () {
+                ScaffoldMessenger.of(context).showSnackBar(
+                  const SnackBar(
+                    content: Text("개인정보처리방침 페이지로 이동합니다."),
+                    backgroundColor: Colors.black,
+                  ),
+                );
+              },
+            ),
 
-            // 앱 정보 섹션
-            _buildSectionHeader("앱 정보"),
-            Padding(
-              padding: EdgeInsets.symmetric(horizontal: 20.w, vertical: 16.h),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Row(
-                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                    children: [
-                      Text(
-                        "앱 버전",
-                        style: TextStyle(
-                          color: Colors.black,
-                          fontSize: 14.sp,
-                          fontWeight: FontWeight.w500,
-                        ),
-                      ),
-                      Text(
-                        "1.0.0",
-                        style: TextStyle(
-                          color: Colors.black54,
-                          fontSize: 14.sp,
-                        ),
-                      ),
-                    ],
+            // 버전 정보
+            _buildSettingButton(
+              icon: Icons.info,
+              title: "버전 정보",
+              subtitle: "v1.0.0",
+              onTap: () {},
+            ),
+
+            // 고객지원
+            _buildSettingButton(
+              icon: Icons.help,
+              title: "고객지원",
+              subtitle: "문의 및 피드백",
+              onTap: () {
+                ScaffoldMessenger.of(context).showSnackBar(
+                  const SnackBar(
+                    content: Text("고객지원 페이지로 이동합니다."),
+                    backgroundColor: Colors.black,
                   ),
-                  SizedBox(height: 12.h),
-                  Row(
-                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                    children: [
-                      Text(
-                        "마지막 업데이트",
-                        style: TextStyle(
-                          color: Colors.black,
-                          fontSize: 14.sp,
-                          fontWeight: FontWeight.w500,
-                        ),
-                      ),
-                      Text(
-                        "2026년 2월 1일",
-                        style: TextStyle(
-                          color: Colors.black54,
-                          fontSize: 14.sp,
-                        ),
-                      ),
-                    ],
-                  ),
-                ],
+                );
+              },
+            ),
+
+            SizedBox(height: 32.h),
+
+            // ===== 위험 작업 섹션 =====
+            Text(
+              "계정 관리",
+              style: TextStyle(
+                color: Colors.redAccent,
+                fontSize: 14.sp,
+                fontWeight: FontWeight.w900,
+                letterSpacing: 0.5,
               ),
             ),
 
-            SizedBox(height: 24.h),
+            SizedBox(height: 12.h),
 
-            // 위험 섹션
-            _buildSectionHeader("기타"),
+            // 로그아웃
             _buildSettingButton(
-              icon: Icons.info_outline,
-              title: "고객 지원",
-              onTap: () {
-                // 고객 지원
+              icon: Icons.logout,
+              title: "로그아웃",
+              titleColor: Colors.orange,
+              onTap: () async {
+                final shouldLogout = await showLogoutDialog(context);
+                if (shouldLogout == true && mounted) {
+                  final success = await _accountService.logout();
+                  if (success && mounted) {
+                    Navigator.pushAndRemoveUntil(
+                      context,
+                      MaterialPageRoute(builder: (context) => const LoginScreen()),
+                          (route) => false,
+                    );
+
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      const SnackBar(
+                        content: Text(
+                          "로그아웃되었습니다.",
+                          style: TextStyle(
+                            color: Colors.white,
+                            fontWeight: FontWeight.bold,
+                          ),
+                        ),
+                        backgroundColor: Colors.green,
+                        duration: Duration(seconds: 2),
+                      ),
+                    );
+                  }
+                }
               },
             ),
+
+            // 계정 삭제
             _buildSettingButton(
-              icon: Icons.delete_outline,
+              icon: Icons.delete,
               title: "계정 삭제",
               titleColor: Colors.red,
               onTap: () {
-                _showDeleteAccountDialog();
+                showDeleteAccountDialog(context);
               },
             ),
 
@@ -213,121 +311,124 @@ class _SettingsScreenState extends State<SettingsScreen> {
     );
   }
 
-  Widget _buildSectionHeader(String title) {
-    return Padding(
-      padding: EdgeInsets.fromLTRB(20.w, 24.h, 20.w, 12.h),
-      child: Text(
-        title,
-        style: TextStyle(
-          color: Colors.black,
-          fontSize: 14.sp,
-          fontWeight: FontWeight.w900,
-          letterSpacing: 0.5,
-        ),
-      ),
-    );
-  }
-
-  Widget _buildSettingTile({
-    required IconData icon,
-    required String title,
-    required String subtitle,
-    required bool value,
-    required Function(bool) onChanged,
-    bool indent = false,
-  }) {
-    return Padding(
-      padding: EdgeInsets.fromLTRB(
-        indent ? 56.w : 20.w,
-        12.h,
-        20.w,
-        12.h,
-      ),
-      child: Row(
-        mainAxisAlignment: MainAxisAlignment.spaceBetween,
-        children: [
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  title,
-                  style: TextStyle(
-                    color: Colors.black,
-                    fontSize: 14.sp,
-                    fontWeight: FontWeight.w500,
-                  ),
-                ),
-                SizedBox(height: 4.h),
-                Text(
-                  subtitle,
-                  style: TextStyle(
-                    color: Colors.black54,
-                    fontSize: 12.sp,
-                  ),
-                ),
-              ],
-            ),
-          ),
-          SizedBox(width: 12.w),
-          Transform.scale(
-            scale: 0.8,
-            child: Switch(
-              value: value,
-              onChanged: onChanged,
-              activeColor: Colors.black,
-              inactiveThumbColor: Colors.grey[300],
-              inactiveTrackColor: Colors.grey[200],
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-
+  // 일반 설정 버튼
   Widget _buildSettingButton({
     required IconData icon,
     required String title,
-    Color? titleColor,
+    String? subtitle,
+    Color titleColor = Colors.black,
     required VoidCallback onTap,
   }) {
-    return GestureDetector(
-      onTap: onTap,
-      child: Container(
-        padding: EdgeInsets.symmetric(horizontal: 20.w, vertical: 16.h),
-        decoration: BoxDecoration(
-          border: Border(
-            bottom: BorderSide(
-              color: const Color(0xFFEEEEEE),
-              width: 1.h,
+    return Container(
+      margin: EdgeInsets.only(bottom: 12.h),
+      decoration: BoxDecoration(
+        color: const Color(0xFFFAFAFA),
+        borderRadius: BorderRadius.circular(12.r),
+        border: Border.all(color: const Color(0xFFF0F0F0)),
+      ),
+      child: Material(
+        color: Colors.transparent,
+        child: InkWell(
+          onTap: onTap,
+          borderRadius: BorderRadius.circular(12.r),
+          child: Padding(
+            padding: EdgeInsets.symmetric(horizontal: 16.w, vertical: 14.h),
+            child: Row(
+              children: [
+                Icon(icon, color: titleColor, size: 24.sp),
+                SizedBox(width: 16.w),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        title,
+                        style: TextStyle(
+                          color: titleColor,
+                          fontSize: 14.sp,
+                          fontWeight: FontWeight.w600,
+                        ),
+                      ),
+                      if (subtitle != null)
+                        Padding(
+                          padding: EdgeInsets.only(top: 4.h),
+                          child: Text(
+                            subtitle,
+                            style: TextStyle(
+                              color: Colors.black38,
+                              fontSize: 12.sp,
+                            ),
+                          ),
+                        ),
+                    ],
+                  ),
+                ),
+                Icon(Icons.arrow_forward_ios, color: Colors.black26, size: 16.sp),
+              ],
             ),
           ),
         ),
+      ),
+    );
+  }
+
+  // 토글 설정 버튼
+  Widget _buildSettingToggle({
+    required IconData icon,
+    required String title,
+    String? subtitle,
+    required bool value,
+    required ValueChanged<bool> onChanged,
+  }) {
+    return Container(
+      margin: EdgeInsets.only(bottom: 12.h),
+      decoration: BoxDecoration(
+        color: const Color(0xFFFAFAFA),
+        borderRadius: BorderRadius.circular(12.r),
+        border: Border.all(color: const Color(0xFFF0F0F0)),
+      ),
+      child: Padding(
+        padding: EdgeInsets.symmetric(horizontal: 16.w, vertical: 14.h),
         child: Row(
-          mainAxisAlignment: MainAxisAlignment.spaceBetween,
           children: [
-            Row(
-              children: [
-                Icon(
-                  icon,
-                  color: titleColor ?? Colors.black,
-                  size: 20.sp,
-                ),
-                SizedBox(width: 16.w),
-                Text(
-                  title,
-                  style: TextStyle(
-                    color: titleColor ?? Colors.black,
-                    fontSize: 14.sp,
-                    fontWeight: FontWeight.w500,
+            Icon(icon, color: Colors.black, size: 24.sp),
+            SizedBox(width: 16.w),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    title,
+                    style: TextStyle(
+                      color: Colors.black,
+                      fontSize: 14.sp,
+                      fontWeight: FontWeight.w600,
+                    ),
                   ),
-                ),
-              ],
+                  if (subtitle != null)
+                    Padding(
+                      padding: EdgeInsets.only(top: 4.h),
+                      child: Text(
+                        subtitle,
+                        style: TextStyle(
+                          color: Colors.black38,
+                          fontSize: 12.sp,
+                        ),
+                      ),
+                    ),
+                ],
+              ),
             ),
-            Icon(
-              Icons.chevron_right,
-              color: Colors.black26,
-              size: 20.sp,
+            Transform.scale(
+              scale: 0.8,
+              child: Switch(
+                value: value,
+                onChanged: onChanged,
+                activeColor: Colors.black,
+                activeTrackColor: Colors.black12,
+                inactiveThumbColor: Colors.grey[400],
+                inactiveTrackColor: Colors.grey[300],
+              ),
             ),
           ],
         ),
@@ -335,95 +436,160 @@ class _SettingsScreenState extends State<SettingsScreen> {
     );
   }
 
-  void _showDeleteAccountDialog() {
+  // 비밀번호 변경 다이얼로그
+  void _showPasswordChangeDialog() {
+    final currentPwController = TextEditingController();
+    final newPwController = TextEditingController();
+    final confirmPwController = TextEditingController();
+    bool showCurrentPassword = false;
+    bool showNewPassword = false;
+
     showDialog(
       context: context,
-      builder: (context) => AlertDialog(
-        backgroundColor: Colors.white,
-        shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.circular(20.r),
-        ),
-        title: const Text(
-          "계정을 삭제하시겠습니까?",
-          style: TextStyle(
-            color: Colors.black,
-            fontWeight: FontWeight.w900,
-          ),
-        ),
-        content: Column(
-          mainAxisSize: MainAxisSize.min,
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Text(
-              "계정 삭제 후에는 다음이 삭제됩니다:",
+      builder: (context) => StatefulBuilder(
+        builder: (context, setDialogState) {
+          return AlertDialog(
+            backgroundColor: Colors.white,
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(20.r),
+            ),
+            title: Text(
+              "비밀번호 변경",
               style: TextStyle(
-                color: Colors.black54,
-                fontSize: 12.sp,
+                color: Colors.black,
+                fontWeight: FontWeight.w900,
+                fontSize: 18.sp,
               ),
             ),
-            SizedBox(height: 12.h),
-            Text(
-              "• 프로필 정보\n• 업로드한 상품\n• 거래 내역\n• 메시지\n• 위시리스트",
-              style: TextStyle(
-                color: Colors.black54,
-                fontSize: 12.sp,
-                height: 1.6,
-              ),
-            ),
-            SizedBox(height: 16.h),
-            Text(
-              "이 작업은 되돌릴 수 없습니다.",
-              style: TextStyle(
-                color: Colors.red,
-                fontSize: 12.sp,
-                fontWeight: FontWeight.bold,
-              ),
-            ),
-          ],
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(context),
-            child: const Text(
-              "취소",
-              style: TextStyle(color: Colors.black38),
-            ),
-          ),
-          ElevatedButton(
-            onPressed: () async {
-              // 계정 삭제 로직
-              Navigator.pop(context);
-              ScaffoldMessenger.of(context).showSnackBar(
-                SnackBar(
-                  content: const Text(
-                    "계정이 삭제되었습니다",
-                    style: TextStyle(
-                      color: Colors.white,  // ✅ 흰색
-                      fontWeight: FontWeight.bold,
+            content: SingleChildScrollView(
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  // 현재 비밀번호
+                  TextField(
+                    controller: currentPwController,
+                    obscureText: !showCurrentPassword,
+                    decoration: InputDecoration(
+                      labelText: "현재 비밀번호",
+                      labelStyle: TextStyle(fontSize: 13.sp),
+                      suffixIcon: IconButton(
+                        icon: Icon(
+                          showCurrentPassword ? Icons.visibility : Icons.visibility_off,
+                          size: 20,
+                        ),
+                        onPressed: () {
+                          setDialogState(() => showCurrentPassword = !showCurrentPassword);
+                        },
+                      ),
+                      border: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(8.r),
+                      ),
+                      contentPadding: EdgeInsets.symmetric(horizontal: 12.w, vertical: 10.h),
                     ),
                   ),
-                  backgroundColor: Colors.black,
-                  behavior: SnackBarBehavior.floating,
-                  margin: const EdgeInsets.all(16),
-                  shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(12),
+
+                  SizedBox(height: 16.h),
+
+                  // 새 비밀번호
+                  TextField(
+                    controller: newPwController,
+                    obscureText: !showNewPassword,
+                    decoration: InputDecoration(
+                      labelText: "새 비밀번호",
+                      labelStyle: TextStyle(fontSize: 13.sp),
+                      suffixIcon: IconButton(
+                        icon: Icon(
+                          showNewPassword ? Icons.visibility : Icons.visibility_off,
+                          size: 20,
+                        ),
+                        onPressed: () {
+                          setDialogState(() => showNewPassword = !showNewPassword);
+                        },
+                      ),
+                      border: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(8.r),
+                      ),
+                      contentPadding: EdgeInsets.symmetric(horizontal: 12.w, vertical: 10.h),
+                    ),
                   ),
-                ),
-              );
-            },
-            style: ElevatedButton.styleFrom(
-              backgroundColor: Colors.red,
-              foregroundColor: Colors.white,
-              shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(8.r),
+
+                  SizedBox(height: 16.h),
+
+                  // 비밀번호 확인
+                  TextField(
+                    controller: confirmPwController,
+                    obscureText: true,
+                    decoration: InputDecoration(
+                      labelText: "비밀번호 확인",
+                      labelStyle: TextStyle(fontSize: 13.sp),
+                      border: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(8.r),
+                      ),
+                      contentPadding: EdgeInsets.symmetric(horizontal: 12.w, vertical: 10.h),
+                    ),
+                  ),
+                ],
               ),
             ),
-            child: const Text(
-              "삭제",
-              style: TextStyle(fontWeight: FontWeight.bold),
-            ),
-          ),
-        ],
+            actions: [
+              TextButton(
+                onPressed: () => Navigator.pop(context),
+                child: const Text(
+                  "취소",
+                  style: TextStyle(color: Colors.black38),
+                ),
+              ),
+              ElevatedButton(
+                onPressed: () async {
+                  if (newPwController.text != confirmPwController.text) {
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      const SnackBar(
+                        content: Text("새 비밀번호가 일치하지 않습니다."),
+                        backgroundColor: Colors.redAccent,
+                      ),
+                    );
+                    return;
+                  }
+
+                  final success = await _accountService.updatePassword(newPwController.text);
+
+                  if (mounted) {
+                    Navigator.pop(context);
+                    if (success) {
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        const SnackBar(
+                          content: Text(
+                            "비밀번호가 변경되었습니다.",
+                            style: TextStyle(color: Colors.white),
+                          ),
+                          backgroundColor: Colors.green,
+                        ),
+                      );
+                    } else {
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        const SnackBar(
+                          content: Text("비밀번호 변경에 실패했습니다."),
+                          backgroundColor: Colors.redAccent,
+                        ),
+                      );
+                    }
+                  }
+                },
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: Colors.black,
+                  foregroundColor: Colors.white,
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(8.r),
+                  ),
+                ),
+                child: const Text(
+                  "변경하기",
+                  style: TextStyle(fontWeight: FontWeight.bold),
+                ),
+              ),
+            ],
+          );
+        },
       ),
     );
   }

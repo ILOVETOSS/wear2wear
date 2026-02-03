@@ -34,6 +34,9 @@ dependencies:
   # 🔥 새로 추가된 패키지
   image_cropper: ^8.0.2              # 프로필 사진 크롭 기능
   cached_network_image: ^3.4.1       # 이미지 캐싱 및 성능 최적화
+  kakao_flutter_sdk: ^0.7.0
+  sign_in_with_apple: ^7.0.1
+  google_sign_in: ^7.2.0
 
 dev_dependencies:
   flutter_test:

@@ -3,6 +3,7 @@ import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import '../main.dart';
 import 'signup_screen.dart';
+import 'password_reset_screen.dart';
 
 class LoginScreen extends StatefulWidget {
   const LoginScreen({super.key});
@@ -15,6 +16,7 @@ class _LoginScreenState extends State<LoginScreen> {
   final _emailController = TextEditingController();
   final _passwordController = TextEditingController();
   bool _isLoading = false;
+  bool _obscurePassword = true;
 
   @override
   void dispose() {
@@ -24,7 +26,11 @@ class _LoginScreenState extends State<LoginScreen> {
   }
 
   Future<void> _handleLogin() async {
-    if (_emailController.text.isEmpty || _passwordController.text.isEmpty) return;
+    if (_emailController.text.isEmpty || _passwordController.text.isEmpty) {
+      _showSnackBar("이메일과 비밀번호를 입력해주세요");
+      return;
+    }
+
     setState(() => _isLoading = true);
 
     try {
@@ -36,6 +42,7 @@ class _LoginScreenState extends State<LoginScreen> {
       if (response.session != null && mounted) {
         await Future.delayed(const Duration(milliseconds: 200));
         if (!mounted) return;
+
         Navigator.pushAndRemoveUntil(
           context,
           MaterialPageRoute(builder: (context) => const MainNavigationScreen()),
@@ -44,13 +51,25 @@ class _LoginScreenState extends State<LoginScreen> {
       }
     } catch (e) {
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text("로그인 정보가 일치하지 않습니다.")),
-        );
+        _showSnackBar("로그인 정보가 일치하지 않습니다.");
+        debugPrint("❌ 로그인 에러: $e");
       }
     } finally {
       if (mounted) setState(() => _isLoading = false);
     }
+  }
+
+  void _showSnackBar(String message) {
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text(
+          message,
+          style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold),
+        ),
+        backgroundColor: Colors.redAccent,
+        duration: const Duration(seconds: 2),
+      ),
+    );
   }
 
   // ✅ 배경색 차이를 없앤 언더라인 스타일 + 커서 깜빡임 추가
@@ -67,13 +86,10 @@ class _LoginScreenState extends State<LoginScreen> {
       obscureText: obscureText,
       keyboardType: keyboardType,
       textInputAction: textInputAction,
-
-      // 🛠 커서 깜빡임 설정 (회원가입 화면과 통일)
       showCursor: true,
       cursorColor: Colors.black,
       cursorWidth: 2.0,
       cursorHeight: 20.h,
-
       style: TextStyle(
         color: Colors.black,
         fontSize: 15.sp,
@@ -86,26 +102,60 @@ class _LoginScreenState extends State<LoginScreen> {
         ),
         suffixIcon: suffixIcon,
         contentPadding: EdgeInsets.symmetric(vertical: 12.h),
-
-        // 배경색 제거
         filled: false,
-
-        // 기본 상태 언더라인
-        enabledBorder: UnderlineInputBorder(
-          borderSide: BorderSide(color: const Color(0xFFEBEBEB), width: 1),
+        enabledBorder: const UnderlineInputBorder(
+          borderSide: BorderSide(color: Color(0xFFEBEBEB), width: 1),
         ),
-        // 포커스 상태 언더라인
-        focusedBorder: UnderlineInputBorder(
+        focusedBorder: const UnderlineInputBorder(
           borderSide: BorderSide(color: Colors.black, width: 1.5),
         ),
-        border: UnderlineInputBorder(
-          borderSide: BorderSide(color: const Color(0xFFEBEBEB), width: 1),
+        border: const UnderlineInputBorder(
+          borderSide: BorderSide(color: Color(0xFFEBEBEB), width: 1),
         ),
       ),
-      // 이메일 삭제 버튼 등을 위해 입력 시마다 상태 업데이트
       onChanged: (value) {
         setState(() {});
       },
+    );
+  }
+
+  // 🔥 소셜 로그인 버튼 빌더
+  Widget _buildSocialButton({
+    required IconData icon,
+    required String label,
+    required Color backgroundColor,
+    required Color textColor,
+    required VoidCallback onPressed,
+  }) {
+    return Expanded(
+      child: GestureDetector(
+        onTap: onPressed,
+        child: Container(
+          padding: EdgeInsets.symmetric(vertical: 12.h),
+          decoration: BoxDecoration(
+            color: backgroundColor,
+            borderRadius: BorderRadius.circular(8.r),
+            border: Border.all(
+              color: backgroundColor.withOpacity(0.5),
+            ),
+          ),
+          child: Row(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              Icon(icon, color: textColor, size: 20.sp),
+              SizedBox(width: 8.w),
+              Text(
+                label,
+                style: TextStyle(
+                  color: textColor,
+                  fontWeight: FontWeight.bold,
+                  fontSize: 14.sp,
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
     );
   }
 
@@ -160,7 +210,10 @@ class _LoginScreenState extends State<LoginScreen> {
                   suffixIcon: _emailController.text.isNotEmpty
                       ? IconButton(
                     icon: Icon(Icons.clear, color: Colors.grey[400], size: 20),
-                    onPressed: () => setState(() => _emailController.clear()),
+                    onPressed: () {
+                      _emailController.clear();
+                      setState(() {});
+                    },
                   )
                       : null,
                 ),
@@ -182,9 +235,18 @@ class _LoginScreenState extends State<LoginScreen> {
                 _buildWhiteTextField(
                   controller: _passwordController,
                   hintText: "비밀번호를 입력하세요",
-                  obscureText: true,
+                  obscureText: _obscurePassword,
                   textInputAction: TextInputAction.done,
-                  suffixIcon: Icon(Icons.visibility_off_outlined, color: Colors.grey[400], size: 20),
+                  suffixIcon: IconButton(
+                    icon: Icon(
+                      _obscurePassword ? Icons.visibility_off_outlined : Icons.visibility_outlined,
+                      color: Colors.grey[400],
+                      size: 20,
+                    ),
+                    onPressed: () {
+                      setState(() => _obscurePassword = !_obscurePassword);
+                    },
+                  ),
                 ),
 
                 SizedBox(height: 40.h),
@@ -224,12 +286,19 @@ class _LoginScreenState extends State<LoginScreen> {
 
                 SizedBox(height: 20.h),
 
-                // 하단 링크
+                // 🔥 비밀번호 찾기 & 회원가입 링크
                 Row(
                   mainAxisAlignment: MainAxisAlignment.center,
                   children: [
                     TextButton(
-                      onPressed: () {},
+                      onPressed: () {
+                        Navigator.push(
+                          context,
+                          MaterialPageRoute(
+                            builder: (context) => const PasswordResetScreen(),
+                          ),
+                        );
+                      },
                       child: Text(
                         "비밀번호 찾기",
                         style: TextStyle(
@@ -263,6 +332,77 @@ class _LoginScreenState extends State<LoginScreen> {
                     ),
                   ],
                 ),
+
+                SizedBox(height: 40.h),
+
+                // 🔥 소셜 로그인 섹션
+                Center(
+                  child: Text(
+                    "다른 방법으로 로그인",
+                    style: TextStyle(
+                      color: Colors.black26,
+                      fontSize: 12.sp,
+                      fontWeight: FontWeight.w600,
+                    ),
+                  ),
+                ),
+
+                SizedBox(height: 16.h),
+
+                // 🔥 소셜 로그인 버튼들
+                Row(
+                  children: [
+                    // 카카오 로그인
+                    _buildSocialButton(
+                      icon: Icons.chat_bubble_outline,
+                      label: "카카오",
+                      backgroundColor: const Color(0xFFFFE812),
+                      textColor: Colors.black,
+                      onPressed: () {
+                        ScaffoldMessenger.of(context).showSnackBar(
+                          const SnackBar(
+                            content: Text(
+                              "카카오 로그인 준비 중입니다.",
+                              style: TextStyle(
+                                color: Colors.white,
+                                fontWeight: FontWeight.bold,
+                              ),
+                            ),
+                            backgroundColor: Colors.black,
+                            duration: Duration(seconds: 2),
+                          ),
+                        );
+                      },
+                    ),
+
+                    SizedBox(width: 12.w),
+
+                    // 애플 로그인
+                    _buildSocialButton(
+                      icon: Icons.apple,
+                      label: "Apple",
+                      backgroundColor: Colors.black,
+                      textColor: Colors.white,
+                      onPressed: () {
+                        ScaffoldMessenger.of(context).showSnackBar(
+                          const SnackBar(
+                            content: Text(
+                              "Apple 로그인 준비 중입니다.",
+                              style: TextStyle(
+                                color: Colors.white,
+                                fontWeight: FontWeight.bold,
+                              ),
+                            ),
+                            backgroundColor: Colors.black,
+                            duration: Duration(seconds: 2),
+                          ),
+                        );
+                      },
+                    ),
+                  ],
+                ),
+
+                SizedBox(height: 60.h),
               ],
             ),
           ),
