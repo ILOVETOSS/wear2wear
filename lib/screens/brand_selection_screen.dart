@@ -1,6 +1,7 @@
 // lib/screens/brand_selection_screen.dart
 import 'package:flutter/material.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
+import '../data/brands_data.dart';
 
 class BrandSelectionScreen extends StatefulWidget {
   final String? initialBrand;
@@ -16,25 +17,8 @@ class _BrandSelectionScreenState extends State<BrandSelectionScreen> {
   String _searchQuery = '';
   String? _selectedBrand;
 
-  // 브랜드 리스트 (실제로는 DB에서 가져올 수 있음)
-  final List<Map<String, String>> _brands = [
-    {'name': 'NIKE', 'name_kr': '나이키'},
-    {'name': 'ADIDAS', 'name_kr': '아디다스'},
-    {'name': 'STUSSY', 'name_kr': '스투시'},
-    {'name': 'SUPREME', 'name_kr': '슈프림'},
-    {'name': 'CARHARTT', 'name_kr': '칼하트'},
-    {'name': 'STONE ISLAND', 'name_kr': '스톤 아일랜드'},
-    {'name': 'CHROME HEARTS', 'name_kr': '크롬하츠'},
-    {'name': 'RICK OWENS', 'name_kr': '릭 오웬스'},
-    {'name': 'BALENCIAGA', 'name_kr': '발렌시아가'},
-    {'name': 'GUCCI', 'name_kr': '구찌'},
-    {'name': 'PRADA', 'name_kr': '프라다'},
-    {'name': 'LOUIS VUITTON', 'name_kr': '루이비통'},
-    {'name': 'ZARA', 'name_kr': '자라'},
-    {'name': 'UNIQLO', 'name_kr': '유니클로'},
-    {'name': 'COS', 'name_kr': '코스'},
-    {'name': 'ACNE STUDIOS', 'name_kr': '아크네 스튜디오'},
-  ];
+  // 브랜드 리스트 - brands_data.dart에서 가져오기
+  final List<Map<String, String>> _brands = BrandsData.brands;
 
   @override
   void initState() {

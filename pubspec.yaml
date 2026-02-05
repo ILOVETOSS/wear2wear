@@ -10,31 +10,32 @@ dependencies:
   flutter:
     sdk: flutter
 
-  # 🔥 디자인 소스 필수 패키지
+  # 🔥 디자인 및 레이아웃 패키지
   flutter_screenutil: ^5.9.3
   carousel_slider: ^5.0.0
-
-  # UI 및 유틸리티
   cupertino_icons: ^1.0.6
   flutter_card_swiper: ^7.0.0
-  image_picker: ^1.2.1
   lottie: ^3.3.2
-  shared_preferences: ^2.5.4
   appinio_swiper: ^2.1.1
   curved_navigation_bar: ^1.0.6
 
-  # 지도 및 위치
+  # 🔥 유틸리티 및 데이터 처리
+  intl: ^0.19.0                      # 날짜 구분선 및 시간 포맷팅 (필수 추가)
+  shared_preferences: ^2.5.4
+  image_picker: ^1.2.1
+  image_cropper: ^8.0.2              # 프로필 사진 크롭 기능
+
+  # 🔥 지도 및 위치 서비스
   google_maps_flutter: ^2.14.0
   geolocator: ^14.0.2
   geocoding: ^4.0.0
 
-  # 🔥 Supabase 패키지 (핵심 서비스)
+  # 🔥 백엔드 및 이미지 캐싱 (Supabase 핵심 서비스)
   supabase_flutter: ^2.6.0
-
-  # 🔥 새로 추가된 패키지
-  image_cropper: ^8.0.2              # 프로필 사진 크롭 기능
   cached_network_image: ^3.4.1       # 이미지 캐싱 및 성능 최적화
-  kakao_flutter_sdk: ^0.7.0
+
+  # 🔥 소셜 로그인 및 인증
+  kakao_flutter_sdk: ^1.9.1          # 최신 버전으로 조정
   sign_in_with_apple: ^7.0.1
   google_sign_in: ^7.2.0
 
@@ -45,9 +46,11 @@ dev_dependencies:
 
 flutter:
   uses-material-design: true
+
+  # 🔥 에셋 관리
   assets:
     - assets/images/splash.jpg
-    # 🔥 브랜드 로고 에셋 추가 (home_brand_section.dart에서 사용)
+    # 브랜드 로고 에셋 (home_brand_section.dart 등에서 사용)
     - assets/images/nike.png
     - assets/images/adidas.png
     - assets/images/stussy.png
