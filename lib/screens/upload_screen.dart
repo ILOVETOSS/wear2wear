@@ -6,6 +6,8 @@ import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import '../services/database_service.dart';
 import '../main.dart';
+import 'brand_selection_screen.dart';
+import 'option_selection_screen.dart';
 
 class UploadScreen extends StatefulWidget {
   final Map<String, dynamic>? editItem;
@@ -24,18 +26,26 @@ class _UploadScreenState extends State<UploadScreen> with SingleTickerProviderSt
   final List<String> _existingImageUrls = [];
   bool _isUploading = false;
 
+  String? _selectedBrand;
+  String? _selectedCategory;
+  String? _selectedSize;
+  String? _selectedCondition;
   String _authStatus = '모름';
   String _tradeType = '둘다 가능';
   bool _agreedToDisclaimer = false;
 
-  final TextEditingController _brandController = TextEditingController();
   final TextEditingController _titleController = TextEditingController();
-  final TextEditingController _priceController = TextEditingController(); // 🔥 가격 입력
+  final TextEditingController _priceController = TextEditingController();
   final TextEditingController _ootdContentController = TextEditingController();
   String _selectedOotdCategory = '스트릿';
 
+  // 카테고리 옵션
+  final List<String> _categories = ['아우터', '상의', '하의', '신발', '가방', '액세서리'];
+  final List<String> _sizes = ['XS', 'S', 'M', 'L', 'XL', '2XL', '3XL', 'FREE'];
+  final List<String> _conditions = ['상급', '중급', '하급'];
+
   bool get isEditMode => widget.editItem != null;
-  bool get _showPriceInput => _tradeType == '판매만' || _tradeType == '둘다 가능'; // 🔥 가격 입력 표시 조건
+  bool get _showPriceInput => _tradeType == '판매만' || _tradeType == '둘다 가능';
 
   @override
   void initState() {
@@ -46,7 +56,6 @@ class _UploadScreenState extends State<UploadScreen> with SingleTickerProviderSt
 
   @override
   void dispose() {
-    _brandController.dispose();
     _titleController.dispose();
     _priceController.dispose();
     _ootdContentController.dispose();
@@ -56,7 +65,7 @@ class _UploadScreenState extends State<UploadScreen> with SingleTickerProviderSt
 
   void _loadExistingData() {
     final item = widget.editItem!;
-    _brandController.text = item['brand'] ?? '';
+    _selectedBrand = item['brand'];
     _titleController.text = item['title'] ?? '';
     _priceController.text = item['price']?.toString() ?? '';
     _authStatus = item['auth_status'] ?? '모름';
@@ -115,6 +124,84 @@ class _UploadScreenState extends State<UploadScreen> with SingleTickerProviderSt
     );
   }
 
+  // 브랜드 선택
+  Future<void> _selectBrand() async {
+    final result = await Navigator.push<String>(
+      context,
+      MaterialPageRoute(
+        builder: (context) => BrandSelectionScreen(
+          initialBrand: _selectedBrand,
+        ),
+      ),
+    );
+
+    if (result != null) {
+      setState(() {
+        _selectedBrand = result;
+      });
+    }
+  }
+
+  // 카테고리 선택
+  Future<void> _selectCategory() async {
+    final result = await Navigator.push<String>(
+      context,
+      MaterialPageRoute(
+        builder: (context) => OptionSelectionScreen(
+          title: '카테고리',
+          options: _categories,
+          initialValue: _selectedCategory,
+        ),
+      ),
+    );
+
+    if (result != null) {
+      setState(() {
+        _selectedCategory = result;
+      });
+    }
+  }
+
+  // 사이즈 선택
+  Future<void> _selectSize() async {
+    final result = await Navigator.push<String>(
+      context,
+      MaterialPageRoute(
+        builder: (context) => OptionSelectionScreen(
+          title: '사이즈',
+          options: _sizes,
+          initialValue: _selectedSize,
+        ),
+      ),
+    );
+
+    if (result != null) {
+      setState(() {
+        _selectedSize = result;
+      });
+    }
+  }
+
+  // 상태 선택
+  Future<void> _selectCondition() async {
+    final result = await Navigator.push<String>(
+      context,
+      MaterialPageRoute(
+        builder: (context) => OptionSelectionScreen(
+          title: '상태',
+          options: _conditions,
+          initialValue: _selectedCondition,
+        ),
+      ),
+    );
+
+    if (result != null) {
+      setState(() {
+        _selectedCondition = result;
+      });
+    }
+  }
+
   Future<void> _handleSave() async {
     final totalImages = _selectedImages.length + _existingImageUrls.length;
     if (totalImages == 0) {
@@ -122,21 +209,27 @@ class _UploadScreenState extends State<UploadScreen> with SingleTickerProviderSt
       return;
     }
 
-    if (_tabController.index == 0 && !_agreedToDisclaimer) {
-      _showSnackBar("법적 책임 면책 조항에 동의해야 등록이 가능합니다.");
-      return;
-    }
-
-    // 🔥 가격 검증
-    if (_tabController.index == 0 && _showPriceInput) {
-      if (_priceController.text.trim().isEmpty) {
-        _showSnackBar("가격을 입력해주세요.");
+    if (_tabController.index == 0) {
+      if (_selectedBrand == null || _selectedBrand!.isEmpty) {
+        _showSnackBar("브랜드를 선택해주세요.");
         return;
       }
-      final price = int.tryParse(_priceController.text.trim());
-      if (price == null || price <= 0) {
-        _showSnackBar("올바른 가격을 입력해주세요.");
+
+      if (!_agreedToDisclaimer) {
+        _showSnackBar("법적 책임 면책 조항에 동의해야 등록이 가능합니다.");
         return;
+      }
+
+      if (_showPriceInput) {
+        if (_priceController.text.trim().isEmpty) {
+          _showSnackBar("가격을 입력해주세요.");
+          return;
+        }
+        final price = int.tryParse(_priceController.text.trim());
+        if (price == null || price <= 0) {
+          _showSnackBar("올바른 가격을 입력해주세요.");
+          return;
+        }
       }
     }
 
@@ -150,13 +243,16 @@ class _UploadScreenState extends State<UploadScreen> with SingleTickerProviderSt
       } else {
         success = await _dbService.uploadClothingItem(
           imageFiles: _selectedImages,
-          brand: _brandController.text,
+          brand: _selectedBrand!,
           title: _titleController.text,
           extraData: {
             'trade_type': _tradeType,
             'auth_status': _authStatus,
             'disclaimer_agreed': _agreedToDisclaimer,
             'price': _showPriceInput ? int.tryParse(_priceController.text.trim()) : null,
+            'category': _selectedCategory,
+            'size': _selectedSize,
+            'condition': _selectedCondition,
           },
         );
       }
@@ -210,7 +306,7 @@ class _UploadScreenState extends State<UploadScreen> with SingleTickerProviderSt
       final allImageUrls = [..._existingImageUrls, ...newUploadedUrls];
 
       await supabase.from('clothes').update({
-        'brand': _brandController.text,
+        'brand': _selectedBrand,
         'title': _titleController.text,
         'image_url': allImageUrls.isNotEmpty ? allImageUrls[0] : null,
         'image_urls': allImageUrls,
@@ -218,6 +314,9 @@ class _UploadScreenState extends State<UploadScreen> with SingleTickerProviderSt
         'auth_status': _authStatus,
         'disclaimer_agreed': _agreedToDisclaimer,
         'price': _showPriceInput ? int.tryParse(_priceController.text.trim()) : null,
+        'category': _selectedCategory,
+        'size': _selectedSize,
+        'condition': _selectedCondition,
       }).eq('id', widget.editItem!['id']);
 
       return true;
@@ -293,19 +392,64 @@ class _UploadScreenState extends State<UploadScreen> with SingleTickerProviderSt
           _buildMultiImagePicker(),
           SizedBox(height: 40.h),
           if (isClothing) ...[
-            _buildMinimalField(_brandController, "브랜드", "브랜드명을 입력하세요"),
+            // 브랜드 선택 버튼
+            _buildSelectionButton(
+              label: "브랜드",
+              value: _selectedBrand,
+              hint: "브랜드를 선택하세요",
+              onTap: _selectBrand,
+            ),
             SizedBox(height: 30.h),
-            _buildMinimalField(_titleController, "아이템 명", "아이템 명을 입력하세요"),
+
+            // 제목 입력
+            _buildTextField(
+              controller: _titleController,
+              label: "아이템 명",
+              hint: "아이템 명을 입력하세요",
+            ),
+            SizedBox(height: 30.h),
+
+            // 카테고리 선택
+            _buildSelectionButton(
+              label: "카테고리",
+              value: _selectedCategory,
+              hint: "카테고리를 선택하세요",
+              onTap: _selectCategory,
+            ),
+            SizedBox(height: 30.h),
+
+            // 사이즈 선택
+            _buildSelectionButton(
+              label: "사이즈",
+              value: _selectedSize,
+              hint: "사이즈를 선택하세요",
+              onTap: _selectSize,
+            ),
+            SizedBox(height: 30.h),
+
+            // 상태 선택
+            _buildSelectionButton(
+              label: "상태",
+              value: _selectedCondition,
+              hint: "상태를 선택하세요",
+              onTap: _selectCondition,
+            ),
             SizedBox(height: 40.h),
+
             _sectionLabel("거래 방식"),
             _buildMinimalBoxChips(['판매만', '스왑만', '둘다 가능'], _tradeType, (val) {
               setState(() => _tradeType = val);
             }),
             SizedBox(height: 30.h),
 
-            // 🔥 가격 입력 필드 (판매만, 둘다 가능일 때만 표시)
             if (_showPriceInput) ...[
-              _buildPriceField(),
+              _buildTextField(
+                controller: _priceController,
+                label: "판매 가격",
+                hint: "가격을 입력하세요",
+                keyboardType: TextInputType.number,
+                suffix: "원",
+              ),
               SizedBox(height: 30.h),
             ],
 
@@ -321,42 +465,137 @@ class _UploadScreenState extends State<UploadScreen> with SingleTickerProviderSt
               setState(() => _selectedOotdCategory = val);
             }),
             SizedBox(height: 30.h),
-            _buildMinimalField(_ootdContentController, "코디 설명", "스타일을 설명해주세요", maxLines: 3),
+            _buildTextField(
+              controller: _ootdContentController,
+              label: "코디 설명",
+              hint: "스타일을 설명해주세요",
+              maxLines: 3,
+            ),
           ],
         ],
       ),
     );
   }
 
-  // 🔥 가격 입력 필드
-  Widget _buildPriceField() {
+  // 선택 버튼 (브랜드, 카테고리, 사이즈, 상태)
+  Widget _buildSelectionButton({
+    required String label,
+    String? value,
+    required String hint,
+    required VoidCallback onTap,
+  }) {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Text("판매 가격",
-            style: TextStyle(
-                color: Colors.black, fontWeight: FontWeight.w900, fontSize: 14.sp)),
+        Text(
+          label,
+          style: TextStyle(
+            color: Colors.black,
+            fontWeight: FontWeight.bold,
+            fontSize: 14.sp,
+          ),
+        ),
+        SizedBox(height: 8.h),
+        GestureDetector(
+          onTap: onTap,
+          child: Container(
+            padding: EdgeInsets.symmetric(vertical: 12.h),
+            decoration: const BoxDecoration(
+              border: Border(
+                bottom: BorderSide(color: Color(0xFFEBEBEB), width: 1),
+              ),
+            ),
+            child: Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                Text(
+                  value ?? hint,
+                  style: TextStyle(
+                    color: value != null ? Colors.black : const Color(0xFFCCCCCC),
+                    fontSize: 15.sp,
+                  ),
+                ),
+                Icon(
+                  Icons.arrow_forward_ios,
+                  color: Colors.black26,
+                  size: 16.sp,
+                ),
+              ],
+            ),
+          ),
+        ),
+      ],
+    );
+  }
+
+  // 텍스트 입력 필드
+  Widget _buildTextField({
+    required TextEditingController controller,
+    required String label,
+    required String hint,
+    int maxLines = 1,
+    TextInputType? keyboardType,
+    String? suffix,
+  }) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(
+          label,
+          style: TextStyle(
+            color: Colors.black,
+            fontWeight: FontWeight.bold,
+            fontSize: 14.sp,
+          ),
+        ),
+        SizedBox(height: 8.h),
         TextField(
-          controller: _priceController,
-          keyboardType: TextInputType.number,
+          controller: controller,
+          maxLines: maxLines,
+          keyboardType: keyboardType,
           cursorColor: Colors.black,
+          cursorWidth: 2.0,
+          cursorHeight: 20.h,
           showCursor: true,
-          style: TextStyle(color: Colors.black, fontSize: 16.sp, fontWeight: FontWeight.w600),
+          style: TextStyle(
+            color: Colors.black,
+            fontSize: 15.sp,
+          ),
           decoration: InputDecoration(
-            hintText: "가격을 입력하세요 (원)",
-            hintStyle: TextStyle(color: Colors.grey[300], fontSize: 14.sp),
-            filled: true,
-            fillColor: Colors.white,
-            suffixText: "원",
-            suffixStyle: TextStyle(color: Colors.black54, fontSize: 14.sp),
+            hintText: hint,
+            hintStyle: TextStyle(
+              color: const Color(0xFFCCCCCC),
+              fontSize: 15.sp,
+            ),
+            suffixIcon: controller.text.isNotEmpty && maxLines == 1
+                ? IconButton(
+              icon: Icon(Icons.clear, color: Colors.grey[400], size: 20),
+              onPressed: () {
+                controller.clear();
+                setState(() {});
+              },
+            )
+                : null,
+            suffixText: suffix,
+            suffixStyle: TextStyle(
+              color: Colors.black54,
+              fontSize: 14.sp,
+            ),
+            contentPadding: EdgeInsets.symmetric(vertical: 12.h),
+            filled: false,
             enabledBorder: const UnderlineInputBorder(
-              borderSide: BorderSide(color: Colors.black12, width: 1.0),
+              borderSide: BorderSide(color: Color(0xFFEBEBEB), width: 1),
             ),
             focusedBorder: const UnderlineInputBorder(
               borderSide: BorderSide(color: Colors.black, width: 1.5),
             ),
-            contentPadding: EdgeInsets.symmetric(vertical: 12.h, horizontal: 0),
+            border: const UnderlineInputBorder(
+              borderSide: BorderSide(color: Color(0xFFEBEBEB), width: 1),
+            ),
           ),
+          onChanged: (value) {
+            setState(() {});
+          },
         ),
       ],
     );
@@ -471,38 +710,6 @@ class _UploadScreenState extends State<UploadScreen> with SingleTickerProviderSt
         style: TextStyle(
             color: Colors.black, fontWeight: FontWeight.w900, fontSize: 14.sp)),
   );
-
-  Widget _buildMinimalField(TextEditingController controller, String label, String hint,
-      {int maxLines = 1}) {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Text(label,
-            style: TextStyle(
-                color: Colors.black, fontWeight: FontWeight.w900, fontSize: 14.sp)),
-        TextField(
-          controller: controller,
-          maxLines: maxLines,
-          cursorColor: Colors.black,
-          showCursor: true,
-          style: TextStyle(color: Colors.black, fontSize: 16.sp, fontWeight: FontWeight.w600),
-          decoration: InputDecoration(
-            hintText: hint,
-            hintStyle: TextStyle(color: Colors.grey[300], fontSize: 14.sp),
-            filled: true,
-            fillColor: Colors.white,
-            enabledBorder: const UnderlineInputBorder(
-              borderSide: BorderSide(color: Colors.black12, width: 1.0),
-            ),
-            focusedBorder: const UnderlineInputBorder(
-              borderSide: BorderSide(color: Colors.black, width: 1.5),
-            ),
-            contentPadding: EdgeInsets.symmetric(vertical: 12.h, horizontal: 0),
-          ),
-        ),
-      ],
-    );
-  }
 
   Widget _buildMinimalBoxChips(
       List<String> options, String selectedValue, Function(String) onSelected) {

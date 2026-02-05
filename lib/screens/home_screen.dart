@@ -178,7 +178,132 @@ class _HomeScreenState extends State<HomeScreen> {
               ),
             ),
 
-            SizedBox(height: 16.h),
+            SizedBox(height: 20.h),
+
+            // 🔥 파트너 브랜드 섹션 (크기 축소)
+            Container(
+              padding: EdgeInsets.symmetric(vertical: 16.h),
+              decoration: const BoxDecoration(
+                color: Colors.white,
+                border: Border(
+                  bottom: BorderSide(color: Color(0xFFEEEEEE), width: 1),
+                ),
+              ),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Padding(
+                    padding: EdgeInsets.symmetric(horizontal: 20.w),
+                    child: Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                      children: [
+                        Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text(
+                              "파트너 브랜드",
+                              style: TextStyle(
+                                color: Colors.black,
+                                fontSize: 14.sp,
+                                fontWeight: FontWeight.w900,
+                              ),
+                            ),
+                            SizedBox(height: 4.h),
+                            Text(
+                              "공식 재고 · 정품 보장",
+                              style: TextStyle(
+                                color: Colors.black54,
+                                fontSize: 10.sp,
+                              ),
+                            ),
+                          ],
+                        ),
+                        Icon(Icons.chevron_right, color: Colors.black26, size: 18.sp),
+                      ],
+                    ),
+                  ),
+                  SizedBox(height: 12.h),
+                  SingleChildScrollView(
+                    scrollDirection: Axis.horizontal,
+                    padding: EdgeInsets.symmetric(horizontal: 20.w),
+                    child: Row(
+                      children: [
+                        {'brand': 'NIKE', 'desc': '신상 50% 할인', 'count': 24},
+                        {'brand': 'STUSSY', 'desc': '시즌오프 재고', 'count': 18},
+                        {'brand': 'ADIDAS', 'desc': 'B급 특가', 'count': 32},
+                      ].map((b) {
+                        return GestureDetector(
+                          onTap: () {
+                            Navigator.push(
+                              context,
+                              MaterialPageRoute(
+                                builder: (_) => BrandDetailScreen(
+                                  brand: {
+                                    'id': b['brand'],
+                                    'name': b['brand'],
+                                    'logo_url': '',
+                                    'follower_count': 1250,
+                                  },
+                                ),
+                              ),
+                            );
+                          },
+                          child: Container(
+                            width: 130.w,
+                            margin: EdgeInsets.only(right: 10.w),
+                            padding: EdgeInsets.all(14.w),
+                            decoration: BoxDecoration(
+                              color: Colors.black,
+                              borderRadius: BorderRadius.circular(10.r),
+                            ),
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Text(
+                                  "공식",
+                                  style: TextStyle(
+                                    color: Colors.white70,
+                                    fontSize: 9.sp,
+                                  ),
+                                ),
+                                SizedBox(height: 4.h),
+                                Text(
+                                  b['brand'] as String,
+                                  style: TextStyle(
+                                    color: Colors.white,
+                                    fontSize: 16.sp,
+                                    fontWeight: FontWeight.w900,
+                                  ),
+                                ),
+                                SizedBox(height: 4.h),
+                                Text(
+                                  b['desc'] as String,
+                                  style: TextStyle(
+                                    color: Colors.white70,
+                                    fontSize: 10.sp,
+                                  ),
+                                ),
+                                SizedBox(height: 6.h),
+                                Text(
+                                  "${b['count']}개 상품",
+                                  style: TextStyle(
+                                    color: Colors.white,
+                                    fontSize: 10.sp,
+                                    fontWeight: FontWeight.bold,
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ),
+                        );
+                      }).toList(),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+
+            SizedBox(height: 20.h),
 
             // 거래 타입 필터
             SingleChildScrollView(
@@ -210,131 +335,6 @@ class _HomeScreenState extends State<HomeScreen> {
                     ),
                   );
                 }).toList(),
-              ),
-            ),
-
-            SizedBox(height: 20.h),
-
-            // 파트너 브랜드 섹션
-            Container(
-              padding: EdgeInsets.symmetric(vertical: 20.h),
-              decoration: const BoxDecoration(
-                color: Colors.white,
-                border: Border(
-                  bottom: BorderSide(color: Color(0xFFEEEEEE), width: 1),
-                ),
-              ),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Padding(
-                    padding: EdgeInsets.symmetric(horizontal: 20.w),
-                    child: Row(
-                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                      children: [
-                        Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            Text(
-                              "파트너 브랜드",
-                              style: TextStyle(
-                                color: Colors.black,
-                                fontSize: 16.sp,
-                                fontWeight: FontWeight.w900,
-                              ),
-                            ),
-                            SizedBox(height: 4.h),
-                            Text(
-                              "공식 재고 · 정품 보장",
-                              style: TextStyle(
-                                color: Colors.black54,
-                                fontSize: 11.sp,
-                              ),
-                            ),
-                          ],
-                        ),
-                        Icon(Icons.chevron_right, color: Colors.black26, size: 20.sp),
-                      ],
-                    ),
-                  ),
-                  SizedBox(height: 16.h),
-                  SingleChildScrollView(
-                    scrollDirection: Axis.horizontal,
-                    padding: EdgeInsets.symmetric(horizontal: 20.w),
-                    child: Row(
-                      children: [
-                        {'brand': 'NIKE', 'desc': '신상 50% 할인', 'count': 24},
-                        {'brand': 'STUSSY', 'desc': '시즌오프 재고', 'count': 18},
-                        {'brand': 'ADIDAS', 'desc': 'B급 특가', 'count': 32},
-                      ].map((b) {
-                        return GestureDetector(
-                          onTap: () {
-                            Navigator.push(
-                              context,
-                              MaterialPageRoute(
-                                builder: (_) => BrandDetailScreen(
-                                  brand: {
-                                    'id': b['brand'],
-                                    'name': b['brand'],
-                                    'logo_url': '',
-                                    'follower_count': 1250,
-                                  },
-                                ),
-                              ),
-                            );
-                          },
-                          child: Container(
-                            width: 160.w,
-                            margin: EdgeInsets.only(right: 12.w),
-                            padding: EdgeInsets.all(16.w),
-                            decoration: BoxDecoration(
-                              color: Colors.black,
-                              borderRadius: BorderRadius.circular(12.r),
-                            ),
-                            child: Column(
-                              crossAxisAlignment: CrossAxisAlignment.start,
-                              children: [
-                                Text(
-                                  "공식",
-                                  style: TextStyle(
-                                    color: Colors.white70,
-                                    fontSize: 10.sp,
-                                  ),
-                                ),
-                                SizedBox(height: 4.h),
-                                Text(
-                                  b['brand'] as String,
-                                  style: TextStyle(
-                                    color: Colors.white,
-                                    fontSize: 18.sp,
-                                    fontWeight: FontWeight.w900,
-                                  ),
-                                ),
-                                SizedBox(height: 4.h),
-                                Text(
-                                  b['desc'] as String,
-                                  style: TextStyle(
-                                    color: Colors.white70,
-                                    fontSize: 11.sp,
-                                  ),
-                                ),
-                                SizedBox(height: 8.h),
-                                Text(
-                                  "${b['count']}개 상품",
-                                  style: TextStyle(
-                                    color: Colors.white,
-                                    fontSize: 11.sp,
-                                    fontWeight: FontWeight.bold,
-                                  ),
-                                ),
-                              ],
-                            ),
-                          ),
-                        );
-                      }).toList(),
-                    ),
-                  ),
-                ],
               ),
             ),
 
