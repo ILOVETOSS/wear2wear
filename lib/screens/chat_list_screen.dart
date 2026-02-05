@@ -1,112 +1,94 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import '../main.dart';
+import '../services/chat_service.dart';
 import 'chat_screen.dart';
 
-class ChatListScreen extends StatelessWidget {
+class ChatListScreen extends StatefulWidget {
   const ChatListScreen({super.key});
 
   @override
-  Widget build(BuildContext context) {
-    final uid = supabase.auth.currentUser!.id;
+  State<ChatListScreen> createState() => _ChatListScreenState();
+}
 
+class _ChatListScreenState extends State<ChatListScreen> {
+  final ChatService _chatService = ChatService();
+  final String myId = supabase.auth.currentUser!.id;
+
+  // 채팅방 나가기 확인 다이얼로그 함수
+  void _showLeaveDialog(String swapId) {
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text("채팅방 나가기", style: TextStyle(fontWeight: FontWeight.bold)),
+        content: const Text("이 채팅방에서 나가시겠습니까?\n나가면 대화 내용이 모두 삭제됩니다."),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: const Text("취소", style: TextStyle(color: Colors.grey)),
+          ),
+          TextButton(
+            onPressed: () async {
+              Navigator.pop(context); // 다이얼로그 닫기
+              await _chatService.leaveChat(swapId);
+              if (mounted) {
+                ScaffoldMessenger.of(context).showSnackBar(
+                  const SnackBar(content: Text("채팅방에서 나갔습니다.")),
+                );
+              }
+            },
+            child: const Text("나가기", style: TextStyle(color: Colors.red)),
+          ),
+        ],
+      ),
+    );
+  }
+
+  @override
+  Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: Colors.white,
       appBar: AppBar(
-        title: const Text("CHATS",
-            style: TextStyle(color: Colors.black, fontWeight: FontWeight.w900, fontSize: 18)),
+        title: const Text("CHATS", style: TextStyle(color: Colors.black, fontWeight: FontWeight.w900)),
         backgroundColor: Colors.white,
         elevation: 0,
         centerTitle: true,
-        bottom: PreferredSize(
-          preferredSize: const Size.fromHeight(1.0),
-          child: Container(color: Colors.black12, height: 1.0),
-        ),
       ),
       body: StreamBuilder<List<Map<String, dynamic>>>(
-        stream: supabase.from('swaps').stream(primaryKey: ['id']),
+        // 내 아이디가 포함된 채팅방 목록 실시간 구독
+        stream: supabase.from('swaps').stream(primaryKey: ['id']).order('created_at', ascending: false),
         builder: (context, snapshot) {
-          if (snapshot.connectionState == ConnectionState.waiting) {
-            return const Center(
-              child: CircularProgressIndicator(
-                color: Colors.black, // 🔥 검정색으로 통일
-              ),
-            );
-          }
+          if (!snapshot.hasData) return const Center(child: CircularProgressIndicator(color: Colors.black));
 
-          final allChats = snapshot.data ?? [];
-          final acceptedChats = allChats.where((c) =>
-          (c['sender_id'] == uid || c['receiver_id'] == uid) && c['status'] == 'accepted'
-          ).toList();
+          final chats = snapshot.data!.where((chat) =>
+          chat['sender_id'] == myId || chat['receiver_id'] == myId).toList();
 
-          if (acceptedChats.isEmpty) {
-            return Center(
-              child: Column(
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: [
-                  Icon(Icons.chat_bubble_outline_rounded, size: 60.sp, color: Colors.black12),
-                  SizedBox(height: 16.h),
-                  Text("진행 중인 채팅이 없습니다.",
-                      style: TextStyle(color: Colors.black26, fontSize: 14.sp, fontWeight: FontWeight.bold)),
-                ],
-              ),
-            );
-          }
+          if (chats.isEmpty) return const Center(child: Text("참여 중인 채팅이 없습니다."));
 
-          return ListView.separated(
-            padding: const EdgeInsets.symmetric(vertical: 10),
-            itemCount: acceptedChats.length,
-            separatorBuilder: (context, index) => const Divider(height: 1, indent: 80, color: Colors.black12),
+          return ListView.builder(
+            itemCount: chats.length,
             itemBuilder: (context, index) {
-              final chat = acceptedChats[index];
-              final bool isIRequested = chat['sender_id'] == uid;
-              final targetClothesId = isIRequested ? chat['receiver_clothes_id'] : chat['sender_clothes_id'];
+              final chat = chats[index];
+              final String swapId = chat['id'].toString();
 
-              return FutureBuilder<Map<String, dynamic>?>(
-                future: supabase.from('clothes').select().eq('id', targetClothesId).maybeSingle(),
-                builder: (context, itemSnap) {
-                  final itemData = itemSnap.data;
-
-                  return ListTile(
-                    contentPadding: const EdgeInsets.symmetric(horizontal: 20, vertical: 10),
-                    onTap: () => Navigator.push(
-                        context,
-                        MaterialPageRoute(builder: (_) => ChatScreen(swapId: chat['id']))
-                    ),
-                    leading: Container(
-                      width: 55.w,
-                      height: 55.w,
-                      decoration: BoxDecoration(
-                        color: const Color(0xFFF5F5F5),
-                        borderRadius: BorderRadius.circular(15),
-                        border: Border.all(color: Colors.black12),
-                        image: (itemData != null && itemData['image_url'] != null)
-                            ? DecorationImage(
-                          image: NetworkImage(itemData['image_url']),
-                          fit: BoxFit.cover,
-                        )
-                            : null,
-                      ),
-                      child: itemData == null
-                          ? const Icon(Icons.checkroom_outlined, color: Colors.black12)
-                          : null,
-                    ),
-                    title: Text(
-                        itemData?['brand']?.toUpperCase() ?? "SWAP CHAT",
-                        style: const TextStyle(color: Colors.black, fontWeight: FontWeight.w900, fontSize: 15)
-                    ),
-                    subtitle: Padding(
-                      padding: const EdgeInsets.only(top: 6),
-                      child: Text(
-                        itemData?['title'] ?? "채팅방에 입장하여 대화를 나누세요",
-                        style: TextStyle(color: Colors.black45, fontSize: 12.sp),
-                        maxLines: 1,
-                        overflow: TextOverflow.ellipsis,
-                      ),
-                    ),
-                    trailing: Icon(Icons.arrow_forward_ios_rounded, color: Colors.black, size: 16.sp),
-                  );
-                },
+              return ListTile(
+                onTap: () => Navigator.push(
+                    context,
+                    MaterialPageRoute(builder: (_) => ChatScreen(swapId: swapId))
+                ),
+                // ✅ 꾹 눌렀을 때 실행되는 기능
+                onLongPress: () => _showLeaveDialog(swapId),
+                contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                leading: const CircleAvatar(
+                  backgroundColor: Color(0xFFF5F5F5),
+                  child: Icon(Icons.person, color: Colors.grey),
+                ),
+                title: Text(
+                    "채팅방 ID: ${swapId.substring(0, 5)}",
+                    style: const TextStyle(fontWeight: FontWeight.bold)
+                ),
+                subtitle: const Text("꾹 눌러서 채팅방 나가기"),
+                trailing: const Icon(Icons.arrow_forward_ios, size: 14, color: Colors.black26),
               );
             },
           );
