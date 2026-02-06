@@ -3,6 +3,7 @@ import 'package:flutter_screenutil/flutter_screenutil.dart';
 import '../main.dart';
 import '../services/swap_service.dart';
 import 'match_success_screen.dart';
+import 'trade_method_selection_screen.dart';
 
 class ActivityScreen extends StatefulWidget {
   const ActivityScreen({super.key});
@@ -21,12 +22,32 @@ class _ActivityScreenState extends State<ActivityScreen>
   void initState() {
     super.initState();
     _tabController = TabController(length: 2, vsync: this);
+    _cleanupExpiredSwaps(); // 만료된 스왑 정리
   }
 
   @override
   void dispose() {
     _tabController.dispose();
     super.dispose();
+  }
+
+  // ✅ 만료된 스왑 자동 삭제 (48시간 초과)
+  Future<void> _cleanupExpiredSwaps() async {
+    try {
+      final now = DateTime.now();
+      final expiredTime = now.subtract(const Duration(hours: 48));
+
+      // pending 상태이면서 48시간 지난 스왑 삭제
+      await supabase
+          .from('swaps')
+          .delete()
+          .eq('status', 'pending')
+          .lt('created_at', expiredTime.toIso8601String());
+
+      debugPrint("✅ 만료된 스왑 정리 완료");
+    } catch (e) {
+      debugPrint("❌ 만료된 스왑 정리 실패: $e");
+    }
   }
 
   @override
@@ -77,7 +98,7 @@ class _ActivityScreenState extends State<ActivityScreen>
   }
 
   // =============================================
-  // 탭 1: 스왑 요청 (기존 match_screen 로직)
+  // 탭 1: 스왑 요청
   // =============================================
   Widget _buildSwapRequestsTab() {
     return StreamBuilder<List<Map<String, dynamic>>>(
@@ -90,11 +111,20 @@ class _ActivityScreenState extends State<ActivityScreen>
         }
 
         final all = snapshot.data ?? [];
-        final requests = all
-            .where((c) =>
-        (c['from_user_id'] == myId || c['to_user_id'] == myId) &&
-            c['status'] == 'pending')
-            .toList();
+
+        // ✅ 만료되지 않은 pending 요청만 필터링
+        final now = DateTime.now();
+        final requests = all.where((c) {
+          if ((c['from_user_id'] != myId && c['to_user_id'] != myId) ||
+              c['status'] != 'pending') {
+            return false;
+          }
+
+          // 48시간 체크
+          final createdAt = DateTime.parse(c['created_at']);
+          final diff = now.difference(createdAt);
+          return diff.inHours < 48;
+        }).toList();
 
         if (requests.isEmpty) {
           return Center(
@@ -171,14 +201,7 @@ class _ActivityScreenState extends State<ActivityScreen>
                   ),
                 ),
               ),
-              Text(
-                "대기 중",
-                style: TextStyle(
-                  color: Colors.black26,
-                  fontSize: 13.sp,
-                  fontWeight: FontWeight.bold,
-                ),
-              ),
+              _buildTimer(req['created_at']),
             ],
           ),
           SizedBox(height: 24.h),
@@ -186,10 +209,8 @@ class _ActivityScreenState extends State<ActivityScreen>
             mainAxisAlignment: MainAxisAlignment.spaceEvenly,
             children: [
               _miniImg(req['my_item_id'], isReceived ? "상대의 옷" : "나의 옷"),
-              Icon(Icons.swap_horiz_rounded,
-                  color: Colors.black, size: 32.sp),
-              _miniImg(
-                  req['target_item_id'], isReceived ? "나의 옷" : "상대의 옷"),
+              Icon(Icons.swap_horiz_rounded, color: Colors.black, size: 32.sp),
+              _miniImg(req['target_item_id'], isReceived ? "나의 옷" : "상대의 옷"),
             ],
           ),
           SizedBox(height: 24.h),
@@ -221,10 +242,8 @@ class _ActivityScreenState extends State<ActivityScreen>
                 Expanded(
                   child: ElevatedButton(
                     onPressed: () async {
-                      // 수락 처리
                       await _swapService.acceptRequest(req['id']);
 
-                      // 매치 성공 화면으로 이동
                       if (mounted) {
                         final myItemData = await supabase
                             .from('clothes')
@@ -309,8 +328,7 @@ class _ActivityScreenState extends State<ActivityScreen>
                 color: const Color(0xFFF5F5F5),
                 border: Border.all(color: Colors.black12),
                 image: url != null
-                    ? DecorationImage(
-                    image: NetworkImage(url), fit: BoxFit.cover)
+                    ? DecorationImage(image: NetworkImage(url), fit: BoxFit.cover)
                     : null,
               ),
               child: url == null
@@ -333,7 +351,7 @@ class _ActivityScreenState extends State<ActivityScreen>
   }
 
   // =============================================
-  // 탭 2: 진행 현황 (NEW)
+  // 탭 2: 진행 현황
   // =============================================
   Widget _buildProgressTab() {
     return StreamBuilder<List<Map<String, dynamic>>>(
@@ -347,7 +365,6 @@ class _ActivityScreenState extends State<ActivityScreen>
 
         final all = snapshot.data ?? [];
 
-        // accepted 이상 상태만 표시
         final inProgress = all
             .where((c) =>
         (c['from_user_id'] == myId || c['to_user_id'] == myId) &&
@@ -357,20 +374,9 @@ class _ActivityScreenState extends State<ActivityScreen>
                 c['status'] == 'completed'))
             .toList();
 
-        final pendingCount = all
-            .where((c) =>
-        (c['from_user_id'] == myId || c['to_user_id'] == myId) &&
-            c['status'] == 'pending')
-            .length;
-
-        final shippingCount = inProgress
-            .where((c) => c['status'] == 'shipping')
-            .length;
-
         return Column(
           children: [
-            // 상단 요약 카드
-            if (inProgress.isNotEmpty || pendingCount > 0)
+            if (inProgress.isNotEmpty)
               Container(
                 margin: EdgeInsets.all(20.w),
                 padding: EdgeInsets.all(20.w),
@@ -382,15 +388,11 @@ class _ActivityScreenState extends State<ActivityScreen>
                 ),
                 child: Row(
                   children: [
-                    Icon(
-                      Icons.notifications_active,
-                      color: Colors.white,
-                      size: 24.sp,
-                    ),
+                    Icon(Icons.notifications_active, color: Colors.white, size: 24.sp),
                     SizedBox(width: 12.w),
                     Expanded(
                       child: Text(
-                        "🔔 진행 중인 스왑 ${inProgress.length}건${shippingCount > 0 ? ' · 배송 ${shippingCount}건' : ''}",
+                        "🔔 진행 중인 스왑 ${inProgress.length}건",
                         style: TextStyle(
                           color: Colors.white,
                           fontSize: 14.sp,
@@ -401,19 +403,13 @@ class _ActivityScreenState extends State<ActivityScreen>
                   ],
                 ),
               ),
-
-            // 진행 중인 스왑 리스트
             Expanded(
               child: inProgress.isEmpty
                   ? Center(
                 child: Column(
                   mainAxisAlignment: MainAxisAlignment.center,
                   children: [
-                    Icon(
-                      Icons.check_circle_outline,
-                      size: 60.sp,
-                      color: Colors.black12,
-                    ),
+                    Icon(Icons.check_circle_outline, size: 60.sp, color: Colors.black12),
                     SizedBox(height: 16.h),
                     Text(
                       "진행 중인 스왑이 없습니다.",
@@ -429,8 +425,7 @@ class _ActivityScreenState extends State<ActivityScreen>
                   : ListView.builder(
                 padding: EdgeInsets.symmetric(horizontal: 20.w),
                 itemCount: inProgress.length,
-                itemBuilder: (context, index) =>
-                    _buildProgressCard(inProgress[index]),
+                itemBuilder: (context, index) => _buildProgressCard(inProgress[index]),
               ),
             ),
           ],
@@ -461,7 +456,6 @@ class _ActivityScreenState extends State<ActivityScreen>
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          // 상태 표시
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
@@ -473,14 +467,10 @@ class _ActivityScreenState extends State<ActivityScreen>
                   fontWeight: FontWeight.w900,
                 ),
               ),
-              // 타이머 표시
               _buildTimer(swap['created_at']),
             ],
           ),
-
           SizedBox(height: 12.h),
-
-          // 다음 단계 안내
           Container(
             padding: EdgeInsets.all(12.w),
             decoration: BoxDecoration(
@@ -489,11 +479,7 @@ class _ActivityScreenState extends State<ActivityScreen>
             ),
             child: Row(
               children: [
-                Icon(
-                  Icons.arrow_forward,
-                  color: Colors.black54,
-                  size: 16.sp,
-                ),
+                Icon(Icons.arrow_forward, color: Colors.black54, size: 16.sp),
                 SizedBox(width: 8.w),
                 Expanded(
                   child: Text(
@@ -508,17 +494,6 @@ class _ActivityScreenState extends State<ActivityScreen>
               ],
             ),
           ),
-
-          SizedBox(height: 16.h),
-
-          // 신뢰 배지
-          Wrap(
-            spacing: 8.w,
-            runSpacing: 8.h,
-            children: _getTrustBadges(swap),
-          ),
-
-          // 액션 버튼
           if (_shouldShowActionButton(status)) ...[
             SizedBox(height: 16.h),
             SizedBox(
@@ -595,41 +570,6 @@ class _ActivityScreenState extends State<ActivityScreen>
     );
   }
 
-  List<Widget> _getTrustBadges(Map<String, dynamic> swap) {
-    List<Widget> badges = [];
-
-    // 안전거래 추천
-    if (swap['trade_method'] == 'safe_trade') {
-      badges.add(_buildBadge("🔒 안전거래 추천", Colors.green));
-    }
-
-    // 고가상품 인증
-    if (swap['trade_method'] == 'premium_trade') {
-      badges.add(_buildBadge("💎 고가상품 인증 가능", Colors.purple));
-    }
-
-    return badges;
-  }
-
-  Widget _buildBadge(String text, Color color) {
-    return Container(
-      padding: EdgeInsets.symmetric(horizontal: 10.w, vertical: 4.h),
-      decoration: BoxDecoration(
-        color: color.withOpacity(0.1),
-        borderRadius: BorderRadius.circular(6.r),
-        border: Border.all(color: color.withOpacity(0.3)),
-      ),
-      child: Text(
-        text,
-        style: TextStyle(
-          color: color,
-          fontSize: 10.sp,
-          fontWeight: FontWeight.bold,
-        ),
-      ),
-    );
-  }
-
   String _getStatusLabel(String status) {
     switch (status) {
       case 'accepted':
@@ -668,7 +608,7 @@ class _ActivityScreenState extends State<ActivityScreen>
         if (tradeMethod == 'direct_trade') {
           return '직접 만나서 교환';
         }
-        return '상품 발송';
+        return '배송지 입력';
       case 'shipping':
         return '상품 도착 대기';
       case 'completed':
@@ -679,13 +619,15 @@ class _ActivityScreenState extends State<ActivityScreen>
   }
 
   bool _shouldShowActionButton(String status) {
-    return status == 'accepted';
+    return status == 'accepted' || status == 'trade_selected';
   }
 
   String _getActionButtonText(String status) {
     switch (status) {
       case 'accepted':
         return '거래 방식 선택하기 →';
+      case 'trade_selected':
+        return '배송지 입력하기 →';
       default:
         return '다음 단계';
     }
@@ -694,27 +636,51 @@ class _ActivityScreenState extends State<ActivityScreen>
   void _handleAction(String status, Map<String, dynamic> swap) async {
     if (status == 'accepted') {
       // 거래 방식 선택 화면으로 이동
-      final myItemData = await supabase
-          .from('clothes')
-          .select()
-          .eq('id', swap['my_item_id'])
-          .single();
+      try {
+        final myItemData = await supabase
+            .from('clothes')
+            .select()
+            .eq('id', swap['my_item_id'])
+            .single();
 
-      final targetItemData = await supabase
-          .from('clothes')
-          .select()
-          .eq('id', swap['target_item_id'])
-          .single();
+        final targetItemData = await supabase
+            .from('clothes')
+            .select()
+            .eq('id', swap['target_item_id'])
+            .single();
 
-      if (mounted) {
+        if (mounted) {
+          Navigator.push(
+            context,
+            MaterialPageRoute(
+              builder: (_) => TradeMethodSelectionScreen(
+                swapId: swap['id'],
+                myItem: myItemData,
+                targetItem: targetItemData,
+              ),
+            ),
+          );
+        }
+      } catch (e) {
+        debugPrint("❌ 에러: $e");
+      }
+    } else if (status == 'trade_selected') {
+      // ✅ 거래 방식에 따라 다른 배송지 화면으로 이동
+      final tradeMethod = swap['trade_method'];
+
+      if (tradeMethod == 'safe_trade' || tradeMethod == 'premium_trade') {
+        // 안전거래/고가상품 거래 → 사무실 배송
         Navigator.pushNamed(
           context,
-          '/trade_method_selection',
-          arguments: {
-            'swapId': swap['id'],
-            'myItem': myItemData,
-            'targetItem': targetItemData,
-          },
+          '/office_shipping',
+          arguments: {'swapId': swap['id']},
+        );
+      } else if (tradeMethod == 'direct_trade') {
+        // 일반거래 → 직거래 약속 장소
+        Navigator.pushNamed(
+          context,
+          '/direct_meeting',
+          arguments: {'swapId': swap['id']},
         );
       }
     }

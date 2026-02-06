@@ -1,17 +1,22 @@
 import 'package:flutter/material.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
+
+// 스크린 임포트
 import 'screens/notification_screen.dart';
 import 'screens/settings_screen.dart';
 import 'theme/app_theme.dart';
 import 'screens/community_screen.dart';
 import 'screens/home_screen.dart';
-import 'screens/activity_screen.dart'; // ✅ match_screen → activity_screen
+import 'screens/activity_screen.dart';
 import 'screens/swap_screen.dart';
 import 'screens/profile_screen.dart';
 import 'screens/login_screen.dart';
 import 'screens/splash_screen.dart';
 import 'screens/upload_screen.dart';
+import 'screens/trade_method_selection_screen.dart';
+import 'screens/office_shipping_screen.dart'; // 추가됨
+import 'screens/direct_meeting_screen.dart';   // 추가됨
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -39,6 +44,25 @@ class MyApp extends StatelessWidget {
           theme: AppTheme.blackWhiteTheme,
           title: 'SWAP-FIT',
           home: const SplashScreen(),
+          // ✅ 모든 라우트 설정 통합
+          routes: {
+            '/trade_method_selection': (context) {
+              final args = ModalRoute.of(context)!.settings.arguments as Map<String, dynamic>;
+              return TradeMethodSelectionScreen(
+                swapId: args['swapId'],
+                myItem: args['myItem'],
+                targetItem: args['targetItem'],
+              );
+            },
+            '/office_shipping': (context) {
+              final args = ModalRoute.of(context)!.settings.arguments as Map<String, dynamic>;
+              return OfficeShippingScreen(swapId: args['swapId']);
+            },
+            '/direct_meeting': (context) {
+              final args = ModalRoute.of(context)!.settings.arguments as Map<String, dynamic>;
+              return DirectMeetingScreen(swapId: args['swapId']);
+            },
+          },
         );
       },
     );
@@ -60,7 +84,7 @@ class MainNavigationScreenState extends State<MainNavigationScreen> {
     const HomeScreen(),
     const CommunityScreen(),
     const SwapScreen(),
-    const ActivityScreen(), // ✅ MatchScreen → ActivityScreen
+    const ActivityScreen(),
     const ProfileScreen(),
   ];
 
@@ -125,7 +149,7 @@ class MainNavigationScreenState extends State<MainNavigationScreen> {
             _buildNavItem(Icons.home_outlined, Icons.home_filled, "HOME"),
             _buildNavItem(Icons.article_outlined, Icons.article, "COMMUNITY"),
             _buildNavItem(Icons.swap_horiz_rounded, Icons.swap_horiz_rounded, "SWAP"),
-            _buildNavItem(Icons.notifications_active_outlined, Icons.notifications_active, "ACTIVITY"), // ✅ CHAT → ACTIVITY
+            _buildNavItem(Icons.notifications_active_outlined, Icons.notifications_active, "ACTIVITY"),
             _buildNavItem(Icons.person_outline_rounded, Icons.person_rounded, "MY"),
           ],
         ),
