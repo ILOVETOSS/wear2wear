@@ -205,17 +205,9 @@ class MatchSuccessScreen extends StatelessWidget {
                     flex: 2,
                     child: ElevatedButton(
                       onPressed: () {
-                        Navigator.pop(context);
-                        // 거래 방식 선택 화면으로 이동
-                        Navigator.pushNamed(
-                          context,
-                          '/trade_method_selection',
-                          arguments: {
-                            'swapId': swapId,
-                            'myItem': myItem,
-                            'targetItem': targetItem,
-                          },
-                        );
+                        // ✅ 수정 포인트: true를 전달하며 pop 합니다.
+                        // 이렇게 하면 ActivityScreen에서 이를 감지하여 "진행 현황" 탭으로 즉시 넘겨줍니다.
+                        Navigator.pop(context, true);
                       },
                       style: ElevatedButton.styleFrom(
                         backgroundColor: Colors.blue,
