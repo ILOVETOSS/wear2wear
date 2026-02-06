@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
+import '../main.dart'; // ✅ supabase 객체 접근을 위해 필수
 
 class TradeMethodSelectionScreen extends StatelessWidget {
   final String swapId;
@@ -12,6 +13,22 @@ class TradeMethodSelectionScreen extends StatelessWidget {
     required this.myItem,
     required this.targetItem,
   });
+
+  // ✅ DB 업데이트 함수: 거래 방식 저장 및 상태 변경
+  Future<void> _updateSwapTradeMethod(String swapId, String method) async {
+    try {
+      await supabase
+          .from('swaps')
+          .update({
+        'trade_method': method,
+        'status': 'trade_selected', // ✅ 상태를 변경해야 ActivityScreen에서 배송지 입력 버튼이 노출됨
+      })
+          .eq('id', swapId);
+    } catch (e) {
+      debugPrint("❌ 거래 방식 업데이트 에러: $e");
+      rethrow;
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -39,7 +56,6 @@ class TradeMethodSelectionScreen extends StatelessWidget {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            // 안내 문구
             Text(
               "안전하고 편리한 거래 방식을\n선택해주세요",
               style: TextStyle(
@@ -49,10 +65,9 @@ class TradeMethodSelectionScreen extends StatelessWidget {
                 height: 1.3,
               ),
             ),
-
             SizedBox(height: 32.h),
 
-            // 🔒 안전거래 (추천)
+            // 1. 안전거래
             _buildTradeMethodCard(
               context: context,
               icon: Icons.lock,
@@ -63,21 +78,13 @@ class TradeMethodSelectionScreen extends StatelessWidget {
               description: "플랫폼이 상품을 보관하고\n검수 후 교환합니다",
               fee: "8,000원",
               duration: "3-5일",
-              benefits: [
-                "✓ 플랫폼 검수 포함",
-                "✓ 상품 보호 보험",
-                "✓ 분쟁 해결 지원",
-              ],
-              onTap: () => _handleTradeMethodSelection(
-                context,
-                'safe_trade',
-                8000,
-              ),
+              benefits: ["✓ 플랫폼 검수 포함", "✓ 상품 보호 보험", "✓ 분쟁 해결 지원"],
+              onTap: () => _handleTradeMethodSelection(context, 'safe_trade', 8000),
             ),
 
             SizedBox(height: 16.h),
 
-            // 💎 고가상품 거래
+            // 2. 고가상품 거래
             _buildTradeMethodCard(
               context: context,
               icon: Icons.diamond,
@@ -88,21 +95,13 @@ class TradeMethodSelectionScreen extends StatelessWidget {
               description: "정품 인증 + 안전거래\n전문가 검수 포함",
               fee: "15,000원",
               duration: "5-7일",
-              benefits: [
-                "✓ 정품 인증서 발급",
-                "✓ 전문가 검수",
-                "✓ 프리미엄 보험",
-              ],
-              onTap: () => _handleTradeMethodSelection(
-                context,
-                'premium_trade',
-                15000,
-              ),
+              benefits: ["✓ 정품 인증서 발급", "✓ 전문가 검수", "✓ 프리미엄 보험"],
+              onTap: () => _handleTradeMethodSelection(context, 'premium_trade', 15000),
             ),
 
             SizedBox(height: 16.h),
 
-            // ⚡ 일반 거래
+            // 3. 일반 거래 (직거래)
             _buildTradeMethodCard(
               context: context,
               icon: Icons.bolt,
@@ -113,21 +112,13 @@ class TradeMethodSelectionScreen extends StatelessWidget {
               description: "직접 만나서 교환\n빠르고 간편합니다",
               fee: "무료",
               duration: "당일 가능",
-              benefits: [
-                "✓ 수수료 없음",
-                "✓ 즉시 거래 가능",
-                "✓ 직접 확인 가능",
-              ],
-              onTap: () => _handleTradeMethodSelection(
-                context,
-                'direct_trade',
-                0,
-              ),
+              benefits: ["✓ 수수료 없음", "✓ 즉시 거래 가능", "✓ 직접 확인 가능"],
+              onTap: () => _handleTradeMethodSelection(context, 'direct_trade', 0),
             ),
 
             SizedBox(height: 32.h),
 
-            // 주의사항
+            // 주의사항 배너
             Container(
               padding: EdgeInsets.all(16.w),
               decoration: BoxDecoration(
@@ -138,11 +129,7 @@ class TradeMethodSelectionScreen extends StatelessWidget {
               child: Row(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Icon(
-                    Icons.info_outline,
-                    color: Colors.orange.shade700,
-                    size: 20,
-                  ),
+                  Icon(Icons.info_outline, color: Colors.orange.shade700, size: 20),
                   SizedBox(width: 12.w),
                   Expanded(
                     child: Text(
@@ -163,6 +150,7 @@ class TradeMethodSelectionScreen extends StatelessWidget {
     );
   }
 
+  // 거래 방식 카드 위젯
   Widget _buildTradeMethodCard({
     required BuildContext context,
     required IconData icon,
@@ -195,7 +183,6 @@ class TradeMethodSelectionScreen extends StatelessWidget {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            // 아이콘 + 타이틀 + 배지
             Row(
               children: [
                 Container(
@@ -222,10 +209,7 @@ class TradeMethodSelectionScreen extends StatelessWidget {
                       ),
                       SizedBox(height: 4.h),
                       Container(
-                        padding: EdgeInsets.symmetric(
-                          horizontal: 8.w,
-                          vertical: 2.h,
-                        ),
+                        padding: EdgeInsets.symmetric(horizontal: 8.w, vertical: 2.h),
                         decoration: BoxDecoration(
                           color: badgeColor.withOpacity(0.1),
                           borderRadius: BorderRadius.circular(4.r),
@@ -242,29 +226,12 @@ class TradeMethodSelectionScreen extends StatelessWidget {
                     ],
                   ),
                 ),
-                Icon(
-                  Icons.arrow_forward_ios,
-                  color: Colors.black26,
-                  size: 16.sp,
-                ),
+                Icon(Icons.arrow_forward_ios, color: Colors.black26, size: 16.sp),
               ],
             ),
-
             SizedBox(height: 16.h),
-
-            // 설명
-            Text(
-              description,
-              style: TextStyle(
-                color: Colors.black54,
-                fontSize: 13.sp,
-                height: 1.4,
-              ),
-            ),
-
+            Text(description, style: TextStyle(color: Colors.black54, fontSize: 13.sp, height: 1.4)),
             SizedBox(height: 16.h),
-
-            // 수수료 + 기간
             Row(
               children: [
                 _buildInfoChip("수수료: $fee"),
@@ -272,19 +239,10 @@ class TradeMethodSelectionScreen extends StatelessWidget {
                 _buildInfoChip("기간: $duration"),
               ],
             ),
-
             SizedBox(height: 16.h),
-
-            // 혜택
             ...benefits.map((benefit) => Padding(
               padding: EdgeInsets.only(bottom: 6.h),
-              child: Text(
-                benefit,
-                style: TextStyle(
-                  color: Colors.black87,
-                  fontSize: 12.sp,
-                ),
-              ),
+              child: Text(benefit, style: TextStyle(color: Colors.black87, fontSize: 12.sp)),
             )),
           ],
         ),
@@ -301,47 +259,27 @@ class TradeMethodSelectionScreen extends StatelessWidget {
       ),
       child: Text(
         text,
-        style: TextStyle(
-          color: Colors.black,
-          fontSize: 11.sp,
-          fontWeight: FontWeight.w600,
-        ),
+        style: TextStyle(color: Colors.black, fontSize: 11.sp, fontWeight: FontWeight.w600),
       ),
     );
   }
 
-  void _handleTradeMethodSelection(
-      BuildContext context,
-      String method,
-      int fee,
-      ) {
-    // 거래 방식 선택 확인 다이얼로그
+  // ✅ 방식 선택 시 팝업 및 DB 처리 로직
+  void _handleTradeMethodSelection(BuildContext context, String method, int fee) {
     showDialog(
       context: context,
-      builder: (context) => AlertDialog(
+      builder: (dialogContext) => AlertDialog(
         backgroundColor: Colors.white,
-        shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.circular(20.r),
-        ),
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20.r)),
         title: Text(
           _getMethodTitle(method),
-          style: TextStyle(
-            color: Colors.black,
-            fontSize: 18.sp,
-            fontWeight: FontWeight.w900,
-          ),
+          style: TextStyle(color: Colors.black, fontSize: 18.sp, fontWeight: FontWeight.w900),
         ),
         content: Column(
           mainAxisSize: MainAxisSize.min,
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Text(
-              "이 방식으로 거래를 진행하시겠습니까?",
-              style: TextStyle(
-                color: Colors.black87,
-                fontSize: 14.sp,
-              ),
-            ),
+            Text("이 방식으로 거래를 진행하시겠습니까?", style: TextStyle(color: Colors.black87, fontSize: 14.sp)),
             if (fee > 0) ...[
               SizedBox(height: 16.h),
               Container(
@@ -353,21 +291,9 @@ class TradeMethodSelectionScreen extends StatelessWidget {
                 child: Row(
                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   children: [
-                    Text(
-                      "거래 수수료",
-                      style: TextStyle(
-                        color: Colors.black54,
-                        fontSize: 13.sp,
-                      ),
-                    ),
-                    Text(
-                      "${_formatPrice(fee)}원",
-                      style: TextStyle(
-                        color: Colors.black,
-                        fontSize: 14.sp,
-                        fontWeight: FontWeight.w900,
-                      ),
-                    ),
+                    Text("거래 수수료", style: TextStyle(color: Colors.black54, fontSize: 13.sp)),
+                    Text("${_formatPrice(fee)}원",
+                        style: TextStyle(color: Colors.black, fontSize: 14.sp, fontWeight: FontWeight.w900)),
                   ],
                 ),
               ),
@@ -376,58 +302,40 @@ class TradeMethodSelectionScreen extends StatelessWidget {
         ),
         actions: [
           TextButton(
-            onPressed: () => Navigator.pop(context),
-            child: Text(
-              "취소",
-              style: TextStyle(
-                color: Colors.black38,
-                fontSize: 14.sp,
-              ),
-            ),
+            onPressed: () => Navigator.pop(dialogContext),
+            child: Text("취소", style: TextStyle(color: Colors.black38, fontSize: 14.sp)),
           ),
           ElevatedButton(
             onPressed: () async {
-              Navigator.pop(context); // 다이얼로그 닫기
+              try {
+                // ✅ 1. DB 업데이트 (trade_method 저장 및 status 변경)
+                await _updateSwapTradeMethod(swapId, method);
 
-              // TODO: DB에 거래 방식 업데이트
-              // await _updateSwapTradeMethod(swapId, method, fee);
+                if (context.mounted) {
+                  Navigator.pop(dialogContext); // 다이얼로그 닫기
+                  Navigator.pop(context); // 현재 화면(거래 선택창) 닫기 -> ActivityScreen으로 돌아감
 
-              Navigator.pop(context); // 거래 방식 선택 화면 닫기
-
-              // 성공 메시지
-              ScaffoldMessenger.of(context).showSnackBar(
-                SnackBar(
-                  content: Text(
-                    "거래 방식이 선택되었습니다. Activity에서 진행 상황을 확인하세요.",
-                    style: TextStyle(
-                      color: Colors.white,
-                      fontWeight: FontWeight.bold,
-                      fontSize: 13.sp,
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    const SnackBar(
+                      content: Text("거래 방식이 선택되었습니다."),
+                      backgroundColor: Colors.green,
                     ),
-                  ),
-                  backgroundColor: Colors.green,
-                  behavior: SnackBarBehavior.floating,
-                  margin: EdgeInsets.all(16.w),
-                  shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(12.r),
-                  ),
-                ),
-              );
+                  );
+                }
+              } catch (e) {
+                if (context.mounted) {
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    const SnackBar(content: Text("업데이트 실패. 다시 시도해주세요."), backgroundColor: Colors.red),
+                  );
+                }
+              }
             },
             style: ElevatedButton.styleFrom(
               backgroundColor: Colors.black,
               foregroundColor: Colors.white,
-              shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(8.r),
-              ),
+              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8.r)),
             ),
-            child: Text(
-              "선택",
-              style: TextStyle(
-                fontSize: 14.sp,
-                fontWeight: FontWeight.bold,
-              ),
-            ),
+            child: Text("선택", style: TextStyle(fontSize: 14.sp, fontWeight: FontWeight.bold)),
           ),
         ],
       ),
@@ -436,14 +344,10 @@ class TradeMethodSelectionScreen extends StatelessWidget {
 
   String _getMethodTitle(String method) {
     switch (method) {
-      case 'safe_trade':
-        return '안전거래';
-      case 'premium_trade':
-        return '고가상품 거래';
-      case 'direct_trade':
-        return '일반 거래';
-      default:
-        return '';
+      case 'safe_trade': return '안전거래';
+      case 'premium_trade': return '고가상품 거래';
+      case 'direct_trade': return '일반 거래';
+      default: return '';
     }
   }
 
