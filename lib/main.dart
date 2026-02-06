@@ -6,7 +6,7 @@ import 'screens/settings_screen.dart';
 import 'theme/app_theme.dart';
 import 'screens/community_screen.dart';
 import 'screens/home_screen.dart';
-import 'screens/match_screen.dart';
+import 'screens/activity_screen.dart'; // ✅ match_screen → activity_screen
 import 'screens/swap_screen.dart';
 import 'screens/profile_screen.dart';
 import 'screens/login_screen.dart';
@@ -60,7 +60,7 @@ class MainNavigationScreenState extends State<MainNavigationScreen> {
     const HomeScreen(),
     const CommunityScreen(),
     const SwapScreen(),
-    const MatchScreen(),
+    const ActivityScreen(), // ✅ MatchScreen → ActivityScreen
     const ProfileScreen(),
   ];
 
@@ -77,7 +77,6 @@ class MainNavigationScreenState extends State<MainNavigationScreen> {
       backgroundColor: Colors.white,
       body: _screens[currentTabIndex],
 
-      // ✅ FloatingActionButton 위치 및 디자인 수정
       floatingActionButton: currentTabIndex == 2
           ? null
           : Padding(
@@ -92,7 +91,7 @@ class MainNavigationScreenState extends State<MainNavigationScreen> {
                 MaterialPageRoute(builder: (context) => const UploadScreen()),
               );
             },
-            backgroundColor: Colors.black, // 버튼은 검은색으로 포인트
+            backgroundColor: Colors.black,
             foregroundColor: Colors.white,
             shape: const CircleBorder(),
             elevation: 4,
@@ -102,32 +101,31 @@ class MainNavigationScreenState extends State<MainNavigationScreen> {
       ),
       floatingActionButtonLocation: FloatingActionButtonLocation.endFloat,
 
-      // ✅ 수정된 네비게이션 바 디자인
       bottomNavigationBar: Container(
         decoration: BoxDecoration(
           color: Colors.white,
           border: Border(
-            top: BorderSide(color: Colors.grey.shade200, width: 1.0), // 상단 구분선
+            top: BorderSide(color: Colors.grey.shade200, width: 1.0),
           ),
         ),
         child: BottomNavigationBar(
           currentIndex: currentTabIndex,
           onTap: changeTab,
-          type: BottomNavigationBarType.fixed, // 아이템 간격 고정
-          backgroundColor: Colors.white, // 배경 흰색
-          selectedItemColor: Colors.black, // 클릭 시 검은색
-          unselectedItemColor: Colors.grey.shade400, // 미클릭 시 회색
+          type: BottomNavigationBarType.fixed,
+          backgroundColor: Colors.white,
+          selectedItemColor: Colors.black,
+          unselectedItemColor: Colors.grey.shade400,
           selectedFontSize: 10.sp,
           unselectedFontSize: 10.sp,
           showUnselectedLabels: true,
           selectedLabelStyle: const TextStyle(fontWeight: FontWeight.bold),
           unselectedLabelStyle: const TextStyle(fontWeight: FontWeight.bold),
-          elevation: 0, // Container Border를 사용하므로 기본 그림자 제거
+          elevation: 0,
           items: [
             _buildNavItem(Icons.home_outlined, Icons.home_filled, "HOME"),
             _buildNavItem(Icons.article_outlined, Icons.article, "COMMUNITY"),
             _buildNavItem(Icons.swap_horiz_rounded, Icons.swap_horiz_rounded, "SWAP"),
-            _buildNavItem(Icons.chat_bubble_outline_rounded, Icons.chat_bubble_rounded, "CHAT"),
+            _buildNavItem(Icons.notifications_active_outlined, Icons.notifications_active, "ACTIVITY"), // ✅ CHAT → ACTIVITY
             _buildNavItem(Icons.person_outline_rounded, Icons.person_rounded, "MY"),
           ],
         ),
@@ -135,7 +133,6 @@ class MainNavigationScreenState extends State<MainNavigationScreen> {
     );
   }
 
-  // ✅ 네비게이션 아이템 빌더 함수
   BottomNavigationBarItem _buildNavItem(IconData icon, IconData activeIcon, String label) {
     return BottomNavigationBarItem(
       icon: Padding(
